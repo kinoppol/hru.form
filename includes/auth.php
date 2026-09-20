@@ -5,10 +5,17 @@ require_once __DIR__ . '/db.php';
 
 function auth_start_session(): void
 {
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_name('hruform_admin_sid');
-        session_start();
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        if (session_name() === 'hruform_admin_sid') {
+            return;
+        }
+        // A different named session (e.g. the site session) is active in this
+        // request; PHP only supports one active session at a time, so close it
+        // before switching to the admin session.
+        session_write_close();
     }
+    session_name('hruform_admin_sid');
+    session_start();
 }
 
 function auth_attempt(string $username, string $password): bool
@@ -54,4 +61,10 @@ function auth_current_username(): ?string
 {
     auth_start_session();
     return $_SESSION['admin_username'] ?? null;
+}
+
+function auth_current_id(): ?int
+{
+    auth_start_session();
+    return isset($_SESSION['admin_id']) ? (int) $_SESSION['admin_id'] : null;
 }

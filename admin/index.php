@@ -19,4 +19,9 @@ $config = app_config();
     <div class="notice">โครงสร้างฐานข้อมูลเป็นปัจจุบันแล้ว</div>
   <?php endif; ?>
 </div>
+<div class="card">
+  <div class="card-title" style="font-weight:700;margin-bottom:6px">ฟอร์มและแบบทดสอบ</div>
+  <p style="margin:0 0 12px;color:#666;font-size:14px">สร้างและจัดการฟอร์ม/แบบทดสอบของคุณเองในฐานะผู้ดูแลระบบ</p>
+  <a class="btn" href="forms.php">จัดการฟอร์ม</a>
+</div>
 <?php require_once __DIR__ . '/_layout_end.php'; ?>

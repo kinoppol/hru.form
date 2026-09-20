@@ -46,6 +46,7 @@ function h(string $v): string { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8')
   <span class="brand">HRU Form &mdash; ผู้ดูแลระบบ</span>
   <div>
     <a href="index.php">แดชบอร์ด</a>
+    <a href="forms.php">จัดการฟอร์ม</a>
     <a href="migrations.php">Migrations</a>
     <a href="logout.php">ออกจากระบบ (<?php echo h(auth_current_username() ?? ''); ?>)</a>
   </div>

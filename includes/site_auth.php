@@ -5,10 +5,17 @@ require_once __DIR__ . '/db.php';
 
 function site_start_session(): void
 {
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_name('hruform_sid');
-        session_start();
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        if (session_name() === 'hruform_sid') {
+            return;
+        }
+        // A different named session (e.g. the admin session) is active in this
+        // request; PHP only supports one active session at a time, so close it
+        // before switching to the site session.
+        session_write_close();
     }
+    session_name('hruform_sid');
+    session_start();
 }
 
 function site_register(string $fullName, string $email, string $password): array
@@ -80,4 +87,42 @@ function site_logout(): void
     site_start_session();
     $_SESSION = [];
     session_destroy();
+}
+
+/**
+ * Ensure an admin account has a matching row in `users` so admins can own
+ * forms through the same dashboard/builder pages as regular site users,
+ * then log the current session in as that user.
+ */
+function site_login_as_admin(int $adminId, string $adminUsername): void
+{
+    $stmt = db()->prepare('SELECT id, full_name FROM users WHERE admin_id = ? LIMIT 1');
+    $stmt->execute([$adminId]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        $email = 'admin-' . $adminId . '@local.internal';
+        $ins = db()->prepare('INSERT INTO users (admin_id, full_name, email, password_hash) VALUES (?, ?, ?, ?)');
+        $ins->execute([$adminId, $adminUsername, $email, password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT)]);
+        $userId = (int) db()->lastInsertId();
+        $fullName = $adminUsername;
+    } else {
+        $userId = (int) $user['id'];
+        $fullName = $user['full_name'];
+    }
+
+    site_login_id($userId, $fullName);
+}
+
+/** True if the currently logged-in site user is a form-management account provisioned for an admin. */
+function site_current_user_is_admin_owned(): bool
+{
+    $userId = site_user_id();
+    if ($userId === null) {
+        return false;
+    }
+    $stmt = db()->prepare('SELECT admin_id FROM users WHERE id = ?');
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    return $row && $row['admin_id'] !== null;
 }
