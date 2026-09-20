@@ -77,8 +77,46 @@ $assetPrefix = '';
 $screenLabel = 'ผลลัพธ์';
 $pageTitle = 'ผลลัพธ์ - ' . $response['title'];
 require __DIR__ . '/includes/site_layout_start.php';
+$personal = json_decode($response['personal_data_json'] ?? '{}', true) ?: [];
 ?>
+<style>
+@media print {
+  .nav, .no-print { display: none !important; }
+  .wrap-narrow { padding-top: 8px !important; max-width: 100% !important; }
+  body { background: #fff !important; }
+  .card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
+}
+</style>
 <section class="wrap-narrow" style="--color-accent:<?php echo h($response['theme_color']); ?>">
+
+  <?php if ($isOwner && !empty($personal)): ?>
+  <div class="card elev-sm no-print" style="margin-bottom:16px;padding:14px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:13px">
+    <span style="font-weight:700;opacity:.5;font-size:11px;text-transform:uppercase;letter-spacing:.05em">ผู้ตอบ</span>
+    <?php foreach ($personal as $k => $v): if ($v === '') continue; ?>
+      <span><strong><?php echo h($k); ?>:</strong> <?php echo h($v); ?></span>
+    <?php endforeach; ?>
+    <span style="flex:1"></span>
+    <a class="btn btn-secondary no-print" style="font-size:12px;padding:6px 12px" href="form_responses.php?form_id=<?php echo (int)$response['form_id']; ?>">← คำตอบทั้งหมด</a>
+    <button class="btn btn-secondary no-print" style="font-size:12px;padding:6px 12px" onclick="window.print()">🖨 พิมพ์</button>
+  </div>
+  <?php elseif ($isOwner): ?>
+  <div class="no-print" style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px">
+    <a class="btn btn-secondary" style="font-size:12px;padding:6px 12px" href="form_responses.php?form_id=<?php echo (int)$response['form_id']; ?>">← คำตอบทั้งหมด</a>
+    <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="window.print()">🖨 พิมพ์</button>
+  </div>
+  <?php endif; ?>
+
+  <!-- print header -->
+  <div style="display:none" class="print-only">
+    <h2 style="margin:0 0 4px"><?php echo h($response['title']); ?></h2>
+    <?php if (!empty($personal)): ?>
+      <p style="font-size:13px;margin:0 0 16px">
+        <?php foreach ($personal as $k => $v): if ($v === '') continue; ?><?php echo h($k); ?>: <?php echo h($v); ?>  <?php endforeach; ?>
+      </p>
+    <?php endif; ?>
+  </div>
+  <style>.print-only{display:none}@media print{.print-only{display:block!important}}</style>
+
   <div class="card elev-md" style="text-align:center;padding:36px">
     <?php if ($showScoreEnabled): ?>
       <div class="card-kicker">คะแนนของคุณ</div>
@@ -124,8 +162,8 @@ require __DIR__ . '/includes/site_layout_start.php';
     </div>
   <?php endif; ?>
 
-  <div style="display:flex;gap:10px;margin-top:26px">
-    <a class="btn btn-secondary" style="flex:1;text-align:center" href="<?php echo $isOwner ? 'dashboard.php' : 'index.php'; ?>">กลับหน้าหลัก</a>
+  <div class="no-print" style="display:flex;gap:10px;margin-top:26px">
+    <a class="btn btn-secondary" style="flex:1;text-align:center" href="<?php echo $isOwner ? 'form_responses.php?form_id=' . (int)$response['form_id'] : 'index.php'; ?>"><?php echo $isOwner ? '← คำตอบทั้งหมด' : 'กลับหน้าหลัก'; ?></a>
     <a class="btn btn-ghost" style="flex:1;text-align:center" href="f.php?token=<?php echo h($response['share_token']); ?>">ลองทำอีกครั้ง</a>
   </div>
 </section>

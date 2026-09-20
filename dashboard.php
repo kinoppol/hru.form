@@ -58,7 +58,8 @@ require __DIR__ . '/includes/site_layout_start.php';
         </div>
         <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
           <a class="btn btn-secondary" style="flex:1;text-align:center" href="form_edit.php?id=<?php echo (int) $form['id']; ?>">แก้ไข</a>
-          <a class="btn btn-secondary" style="flex:1;text-align:center" href="f.php?token=<?php echo h($form['share_token']); ?>" target="_blank">ดูตัวอย่าง</a>
+          <a class="btn btn-secondary" style="flex:1;text-align:center" href="form_responses.php?form_id=<?php echo (int) $form['id']; ?>">ดูคำตอบ <?php if ($form['response_count'] > 0): ?><span style="background:var(--color-accent);color:#fff;border-radius:99px;font-size:11px;padding:1px 7px;margin-left:4px"><?php echo (int)$form['response_count']; ?></span><?php endif; ?></a>
+          <a class="btn btn-ghost btn-icon" aria-label="ดูตัวอย่าง" href="f.php?token=<?php echo h($form['share_token']); ?>" target="_blank">👁</a>
           <a class="btn btn-ghost btn-icon" aria-label="แชร์ลิงก์" href="share.php?id=<?php echo (int) $form['id']; ?>">🔗</a>
         </div>
       </div>
