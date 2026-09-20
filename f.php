@@ -140,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $assetPrefix = '';
 $screenLabel = 'ตอบแบบฟอร์ม';
 $pageTitle = $form['title'];
+$navBrand = $form['title'];
 require __DIR__ . '/includes/site_layout_start.php';
 
 $accent = $form['theme_color'] ?? '#9184d9';
