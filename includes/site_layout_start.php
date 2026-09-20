@@ -18,7 +18,7 @@ declare(strict_types=1);
   <?php if (site_check()): ?>
     <span class="text-muted" style="font-size:13px"><?php echo h(site_user_name() ?? ''); ?></span>
     <?php if (site_current_user_is_admin_owned()): ?>
-      <a href="<?php echo isset($assetPrefix) ? h($assetPrefix) : ''; ?>admin/index.php">กลับสู่ระบบผู้ดูแล</a>
+      <a href="<?php echo isset($assetPrefix) ? h($assetPrefix) : ''; ?>admin_return.php">กลับสู่ระบบผู้ดูแล</a>
     <?php endif; ?>
     <a href="<?php echo isset($assetPrefix) ? h($assetPrefix) : ''; ?>dashboard.php">แดชบอร์ด</a>
     <a href="<?php echo isset($assetPrefix) ? h($assetPrefix) : ''; ?>logout.php">ออกจากระบบ</a>
