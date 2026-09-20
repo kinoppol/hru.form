@@ -78,7 +78,7 @@ require __DIR__ . '/includes/site_layout_start.php';
 </style>
 <section class="wrap">
   <?php if ($notice !== ''): ?><div class="notice"><?php echo h($notice); ?></div><?php endif; ?>
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px">
+  <div class="page-head">
     <div>
       <div class="card-kicker" style="margin-bottom:4px"><?php echo h($form['title']); ?></div>
       <h2 style="margin:0">รายการคำตอบทั้งหมด</h2>

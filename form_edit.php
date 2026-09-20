@@ -127,7 +127,7 @@ $pageTitle = $form['title'];
 require __DIR__ . '/includes/site_layout_start.php';
 ?>
 <section class="wrap">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+  <div class="page-head">
     <h2 style="margin:0"><?php echo h($form['title']); ?></h2>
     <a class="btn btn-secondary" href="dashboard.php">← กลับแดชบอร์ด</a>
   </div>

@@ -24,10 +24,10 @@ $pageTitle = 'ฟอร์มของฉัน';
 require __DIR__ . '/includes/site_layout_start.php';
 ?>
 <section class="wrap">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px">
+  <div class="page-head">
     <div>
       <h2 style="margin:0 0 4px">ฟอร์มของฉัน</h2>
-      <p class="text-muted" style="margin:0;font-size:13px">จัดการฟอร์มและแบบทดสอบทั้งหมดของคุณที่นี่</p>
+      <p class="page-sub">จัดการฟอร์มและแบบทดสอบทั้งหมดของคุณที่นี่</p>
     </div>
     <div style="display:flex;gap:10px">
       <a class="btn btn-secondary" href="import.php">นำเข้าแบบทดสอบ</a>
