@@ -17,6 +17,23 @@ if (!$form) { header('Location: dashboard.php'); exit; }
 
 $personalFields = json_decode($form['personal_fields_json'] ?? '[]', true) ?: [];
 
+$notice = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_response') {
+    $delId = (int) ($_POST['response_id'] ?? 0);
+    // verify the response belongs to this form (which is already owner-checked)
+    $chk = db()->prepare('SELECT id FROM form_responses WHERE id = ? AND form_id = ?');
+    $chk->execute([$delId, $formId]);
+    if ($chk->fetch()) {
+        db()->prepare('DELETE FROM form_responses WHERE id = ?')->execute([$delId]);
+        $notice = 'ลบรายการตอบกลับแล้ว';
+    }
+    header('Location: form_responses.php?form_id=' . $formId . '&deleted=1');
+    exit;
+}
+if (isset($_GET['deleted'])) {
+    $notice = 'ลบรายการตอบกลับแล้ว';
+}
+
 $rStmt = db()->prepare('
     SELECT r.id, r.score, r.max_score, r.submitted_at, r.personal_data_json
     FROM form_responses r WHERE r.form_id = ? ORDER BY r.submitted_at DESC
@@ -44,6 +61,7 @@ require __DIR__ . '/includes/site_layout_start.php';
 }
 </style>
 <section class="wrap">
+  <?php if ($notice !== ''): ?><div class="notice"><?php echo h($notice); ?></div><?php endif; ?>
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px">
     <div>
       <div class="card-kicker" style="margin-bottom:4px"><?php echo h($form['title']); ?></div>
@@ -97,6 +115,7 @@ require __DIR__ . '/includes/site_layout_start.php';
             <?php endif; ?>
             <th style="padding:12px 16px;text-align:left;font-weight:700">วันที่ส่ง</th>
             <th class="no-print" style="padding:12px 16px;text-align:center;font-weight:700">ดู/พิมพ์</th>
+            <th class="no-print" style="padding:12px 16px;text-align:center;font-weight:700"></th>
           </tr>
         </thead>
         <tbody>
@@ -121,6 +140,14 @@ require __DIR__ . '/includes/site_layout_start.php';
               <td style="padding:12px 16px;font-size:12px;opacity:.65"><?php echo h(date('d M Y H:i', strtotime($r['submitted_at']))); ?></td>
               <td class="no-print" style="padding:12px 16px;text-align:center">
                 <a class="btn btn-secondary" style="font-size:12px;padding:6px 12px" href="results.php?rid=<?php echo (int)$r['id']; ?>">ดู / พิมพ์</a>
+              </td>
+              <td class="no-print" style="padding:12px 16px;text-align:center">
+                <form method="post" style="margin:0" onsubmit="return confirm('ลบรายการตอบกลับนี้? ไม่สามารถกู้คืนได้')">
+                  <input type="hidden" name="action" value="delete_response">
+                  <input type="hidden" name="response_id" value="<?php echo (int)$r['id']; ?>">
+                  <input type="hidden" name="form_id" value="<?php echo $formId; ?>">
+                  <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" type="submit">ลบ</button>
+                </form>
               </td>
             </tr>
           <?php endforeach; ?>
