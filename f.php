@@ -209,6 +209,46 @@ if ($state['step'] === 1) {
 .f-btn-ghost{background:transparent;color:#44424c;border:1.5px solid #e6e3ee}
 .f-btn-ghost:hover{background:#f4f3f8}
 
+/* ===== modern AI-era layer ===== */
+body{background:radial-gradient(900px 500px at 10% 0%,color-mix(in srgb,var(--fa) 10%,transparent),transparent 70%),radial-gradient(800px 500px at 100% 40%,rgba(56,189,248,.08),transparent 70%),#f8f8fc}
+.nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.72)!important;backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);border-bottom:1px solid rgba(255,255,255,.6)!important;box-shadow:0 1px 0 rgba(30,20,60,.05)}
+.f-prog-wrap{background:rgba(0,0,0,.05)}
+.f-prog-fill{background:linear-gradient(90deg,var(--fa),#38bdf8,var(--fa));background-size:200% 100%;animation:f-flow 3s linear infinite;box-shadow:0 0 12px var(--fa)}
+@keyframes f-flow{to{background-position:-200% 0}}
+
+.f-hero{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--fa) 0%,color-mix(in srgb,var(--fa) 55%,#0b1140) 100%)}
+.f-hero::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);background-size:36px 36px;-webkit-mask-image:radial-gradient(ellipse at 80% 0%,#000,transparent 70%);mask-image:radial-gradient(ellipse at 80% 0%,#000,transparent 70%)}
+.f-hero::after{content:'';position:absolute;width:420px;height:420px;left:-120px;bottom:-220px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.22),transparent 65%);animation:f-drift 9s ease-in-out infinite alternate}
+@keyframes f-drift{to{transform:translate(80px,-30px) scale(1.15)}}
+.f-hero>*{position:relative;z-index:1}
+.f-hero h1{text-shadow:0 2px 20px rgba(0,0,0,.15)}
+.f-hero-step{backdrop-filter:blur(8px)}
+
+/* AI orb — top right */
+.ai-orb{position:absolute!important;top:18px;right:24px;width:84px;height:84px;z-index:2;pointer-events:none}
+.ai-orb .core{position:absolute;inset:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#c7d2fe 40%,#818cf8 75%);box-shadow:0 0 24px 6px rgba(255,255,255,.55),0 0 50px 14px rgba(129,140,248,.6);animation:orb-pulse 2.6s ease-in-out infinite}
+.ai-orb .ring{position:absolute;inset:6px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 55%,rgba(255,255,255,.95) 80%,transparent);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 calc(100% - 1px));mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 calc(100% - 1px));animation:orb-spin 3.2s linear infinite}
+.ai-orb .ring.r2{inset:-4px;opacity:.55;animation-duration:5.5s;animation-direction:reverse}
+.ai-orb .spark{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:#fff;box-shadow:0 0 8px 2px rgba(255,255,255,.9);animation:orb-orbit 4s linear infinite}
+.ai-orb .spark.s2{animation-duration:6.5s;animation-delay:-2s;width:4px;height:4px;margin:-2px;background:#a5f3fc}
+@keyframes orb-spin{to{transform:rotate(360deg)}}
+@keyframes orb-pulse{50%{transform:scale(1.18);filter:brightness(1.15)}}
+@keyframes orb-orbit{from{transform:rotate(0) translateX(46px)}to{transform:rotate(360deg) translateX(46px)}}
+@media(max-width:600px){.ai-orb{width:56px;height:56px;top:12px;right:12px}.ai-orb .core{inset:17px}.ai-orb .spark{display:none}}
+
+.f-card,.f-q{backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.7);animation:f-rise .6s cubic-bezier(.2,.8,.2,1) both}
+.f-card{background:rgba(255,255,255,.88);box-shadow:0 20px 60px rgba(30,20,60,.14),0 0 0 1px rgba(30,20,60,.04)}
+.f-q{background:rgba(255,255,255,.92);transition:transform .2s,box-shadow .2s}
+.f-q:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(30,20,60,.1)}
+.f-q:nth-child(2){animation-delay:.05s}.f-q:nth-child(3){animation-delay:.1s}.f-q:nth-child(4){animation-delay:.15s}.f-q:nth-child(n+5){animation-delay:.2s}
+@keyframes f-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.f-input{background:rgba(250,249,252,.9);border-radius:12px}
+.f-btn-primary{background:linear-gradient(135deg,var(--fa),color-mix(in srgb,var(--fa) 70%,#38bdf8));position:relative;overflow:hidden}
+.f-btn-primary::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);animation:f-shine 3.5s ease-in-out infinite}
+@keyframes f-shine{60%,100%{left:130%}}
+.f-opt:has(input:checked){transform:scale(1.01)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
 /* section heading in card */
 .f-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:color-mix(in srgb,var(--fa) 80%,#333);margin-bottom:18px;display:flex;align-items:center;gap:8px}
 .f-section-label::after{content:'';flex:1;height:1px;background:color-mix(in srgb,var(--fa) 20%,#e6e3ee)}
@@ -221,6 +261,10 @@ if ($state['step'] === 1) {
 
 <!-- hero -->
 <div class="f-hero">
+  <div class="ai-orb" aria-hidden="true">
+    <span class="ring r2"></span><span class="ring"></span><span class="core"></span>
+    <span class="spark"></span><span class="spark s2"></span>
+  </div>
   <div class="f-hero-step">
     <span class="f-hero-step-dot"><?php echo $stepNum; ?></span>
     <?php echo $state['step'] === 0 ? 'ส่วนที่ 1 / 2 · ข้อมูลผู้ตอบ' : 'ส่วนที่ 2 / 2 · แบบทดสอบ'; ?>
