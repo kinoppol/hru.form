@@ -18,8 +18,8 @@ if (!$form) { header('Location: dashboard.php'); exit; }
 $personalFields = json_decode($form['personal_fields_json'] ?? '[]', true) ?: [];
 
 $rStmt = db()->prepare('
-    SELECT r.id, r.score, r.max_score, r.created_at, r.personal_data_json
-    FROM form_responses r WHERE r.form_id = ? ORDER BY r.created_at DESC
+    SELECT r.id, r.score, r.max_score, r.submitted_at, r.personal_data_json
+    FROM form_responses r WHERE r.form_id = ? ORDER BY r.submitted_at DESC
 ');
 $rStmt->execute([$formId]);
 $responses = $rStmt->fetchAll();
@@ -118,7 +118,7 @@ require __DIR__ . '/includes/site_layout_start.php';
                   <?php else: ?>—<?php endif; ?>
                 </td>
               <?php endif; ?>
-              <td style="padding:12px 16px;font-size:12px;opacity:.65"><?php echo h(date('d M Y H:i', strtotime($r['created_at']))); ?></td>
+              <td style="padding:12px 16px;font-size:12px;opacity:.65"><?php echo h(date('d M Y H:i', strtotime($r['submitted_at']))); ?></td>
               <td class="no-print" style="padding:12px 16px;text-align:center">
                 <a class="btn btn-secondary" style="font-size:12px;padding:6px 12px" href="results.php?rid=<?php echo (int)$r['id']; ?>">ดู / พิมพ์</a>
               </td>
