@@ -91,15 +91,15 @@ final class Migrator
 
         foreach ($pending as $name) {
             $definition = $this->loadMigration($name);
-            $this->pdo->beginTransaction();
             try {
+                // Not wrapped in a transaction: DDL statements (CREATE TABLE, etc.)
+                // cause an implicit commit in MySQL/MariaDB, which would silently
+                // end any transaction started here anyway.
                 ($definition['up'])($this->pdo);
                 $stmt = $this->pdo->prepare('INSERT INTO migrations (migration, batch, applied_at) VALUES (?, ?, NOW())');
                 $stmt->execute([$name, $batch]);
-                $this->pdo->commit();
                 $ran[] = $name;
             } catch (Throwable $e) {
-                $this->pdo->rollBack();
                 throw new RuntimeException("Migration {$name} failed: " . $e->getMessage(), 0, $e);
             }
         }
@@ -122,17 +122,14 @@ final class Migrator
         $rolledBack = [];
         foreach ($names as $name) {
             $definition = $this->loadMigration($name);
-            $this->pdo->beginTransaction();
             try {
                 if (isset($definition['down']) && is_callable($definition['down'])) {
                     ($definition['down'])($this->pdo);
                 }
                 $del = $this->pdo->prepare('DELETE FROM migrations WHERE migration = ?');
                 $del->execute([$name]);
-                $this->pdo->commit();
                 $rolledBack[] = $name;
             } catch (Throwable $e) {
-                $this->pdo->rollBack();
                 throw new RuntimeException("Rollback of {$name} failed: " . $e->getMessage(), 0, $e);
             }
         }
