@@ -55,3 +55,19 @@ function app_base_url(): string
     $dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
     return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . $dir;
 }
+
+function app_name(): string
+{
+    static $name = null;
+    if ($name !== null) { return $name; }
+    $name = 'Noema';
+    if (function_exists('db')) {
+        try {
+            $v = db()->query("SELECT `value` FROM settings WHERE `key` = 'app_name'")->fetchColumn();
+            if (is_string($v) && trim($v) !== '') { $name = trim($v); }
+        } catch (Throwable $e) {
+            // settings table unavailable; keep default
+        }
+    }
+    return $name;
+}

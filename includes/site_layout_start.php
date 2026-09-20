@@ -7,12 +7,12 @@ declare(strict_types=1);
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?php echo isset($pageTitle) ? h($pageTitle) . ' - ' : ''; ?>Noema</title>
+<title><?php echo isset($pageTitle) ? h($pageTitle) . ' - ' : ''; ?><?php echo h(app_name()); ?></title>
 <link rel="stylesheet" href="<?php echo isset($assetPrefix) ? h($assetPrefix) : ''; ?>assets/css/app.css">
 </head>
 <body>
 <header class="nav">
-  <span class="nav-brand" <?php if (!isset($navBrand)): ?>onclick="location.href='<?php echo isset($assetPrefix) ? h($assetPrefix) : ''; ?>index.php'"<?php else: ?>style="cursor:default"<?php endif; ?>><?php echo isset($navBrand) ? h($navBrand) : 'Noema'; ?></span>
+  <span class="nav-brand" <?php if (!isset($navBrand)): ?>onclick="location.href='<?php echo isset($assetPrefix) ? h($assetPrefix) : ''; ?>index.php'"<?php else: ?>style="cursor:default"<?php endif; ?>><?php echo isset($navBrand) ? h($navBrand) : h(app_name()); ?></span>
   <?php if (isset($screenLabel)): ?><span class="tag tag-outline"><?php echo h($screenLabel); ?></span><?php endif; ?>
   <span class="nav-spacer"></span>
   <?php if (site_check()): ?>
