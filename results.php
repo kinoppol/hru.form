@@ -10,7 +10,7 @@ require_once __DIR__ . '/includes/helpers.php';
 site_start_session();
 
 $rid = (int) ($_GET['rid'] ?? 0);
-$stmt = db()->prepare('SELECT r.*, f.title, f.theme_color, f.show_score, f.user_id AS owner_id, f.share_token FROM form_responses r JOIN forms f ON f.id = r.form_id WHERE r.id = ?');
+$stmt = db()->prepare('SELECT r.*, f.title, f.theme_color, f.show_score, f.show_answers, f.user_id AS owner_id, f.share_token FROM form_responses r JOIN forms f ON f.id = r.form_id WHERE r.id = ?');
 $stmt->execute([$rid]);
 $response = $stmt->fetch();
 
@@ -29,13 +29,20 @@ if (!$isOwner && !$isSelf) {
     $isSelf = true;
 }
 
-$showScoreEnabled = (bool) $response['show_score'];
+$showScoreEnabled   = (bool) $response['show_score'];
+$showAnswersEnabled = (bool) ($response['show_answers'] ?? 0);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner && isset($_POST['toggle_show_score'])) {
-    $showScoreEnabled = !$showScoreEnabled;
-    db()->prepare('UPDATE forms SET show_score = ? WHERE id = ?')->execute([$showScoreEnabled ? 1 : 0, (int) $response['form_id']]);
-    header('Location: results.php?rid=' . $rid);
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner) {
+    if (isset($_POST['toggle_show_score'])) {
+        $showScoreEnabled = !$showScoreEnabled;
+        db()->prepare('UPDATE forms SET show_score = ? WHERE id = ?')->execute([$showScoreEnabled ? 1 : 0, (int) $response['form_id']]);
+        header('Location: results.php?rid=' . $rid); exit;
+    }
+    if (isset($_POST['toggle_show_answers'])) {
+        $showAnswersEnabled = !$showAnswersEnabled;
+        db()->prepare('UPDATE forms SET show_answers = ? WHERE id = ?')->execute([$showAnswersEnabled ? 1 : 0, (int) $response['form_id']]);
+        header('Location: results.php?rid=' . $rid); exit;
+    }
 }
 
 $aStmt = db()->prepare('
@@ -132,30 +139,53 @@ $personal = json_decode($response['personal_data_json'] ?? '{}', true) ?: [];
   <div style="display:flex;align-items:center;justify-content:space-between;margin:26px 0 14px;gap:12px;flex-wrap:wrap">
     <h3 style="margin:0">รายละเอียดคำตอบ</h3>
     <?php if ($isOwner): ?>
-      <form method="post" style="margin:0">
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;opacity:.75;cursor:pointer">
-          มุมมองเจ้าของฟอร์ม: แสดงคะแนน
-          <input type="checkbox" name="toggle_show_score" onchange="this.form.submit()" <?php echo $showScoreEnabled ? 'checked' : ''; ?>>
-        </label>
-      </form>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <form method="post" style="margin:0">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;opacity:.75;cursor:pointer">
+            <input type="checkbox" name="toggle_show_score" onchange="this.form.submit()" <?php echo $showScoreEnabled ? 'checked' : ''; ?>>
+            แสดงคะแนน
+          </label>
+        </form>
+        <form method="post" style="margin:0">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;opacity:.75;cursor:pointer">
+            <input type="checkbox" name="toggle_show_answers" onchange="this.form.submit()" <?php echo $showAnswersEnabled ? 'checked' : ''; ?>>
+            แสดงเฉลย
+          </label>
+        </form>
+      </div>
     <?php endif; ?>
   </div>
 
-  <?php if ($showScoreEnabled): ?>
+  <?php if ($showScoreEnabled || $showAnswersEnabled): ?>
     <div style="display:grid;gap:10px">
-      <?php foreach ($answerRows as $row): ?>
-        <?php if (!$row['scored']) continue; ?>
-        <?php $optStmt->execute([$row['question_id']]); $opts = $optStmt->fetchAll(); ?>
-        <?php $ok = (bool) $row['is_correct']; ?>
+      <?php foreach ($answerRows as $i => $row): ?>
+        <?php
+          if (!$row['scored'] && !$showAnswersEnabled) continue;
+          $optStmt->execute([$row['question_id']]); $opts = $optStmt->fetchAll();
+          $ok = (bool) $row['is_correct'];
+          $correctLabels = array_map(static fn ($o) => $o['label'], array_filter($opts, static fn ($o) => (bool) $o['is_correct']));
+        ?>
         <div class="card elev-sm">
-          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-            <div class="card-title" style="font-size:14px"><?php echo h($row['text']); ?></div>
-            <span class="tag <?php echo $ok ? 'tag-accent' : 'tag-neutral'; ?>"><?php echo $ok ? 'ถูกต้อง' : 'ไม่ถูกต้อง'; ?></span>
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;opacity:.45;margin-bottom:4px">ข้อที่ <?php echo $i + 1; ?></div>
+              <div class="card-title" style="font-size:14px"><?php echo nl2br(h($row['text'])); ?></div>
+            </div>
+            <?php if ($row['scored'] && $showScoreEnabled): ?>
+              <span class="tag <?php echo $ok ? 'tag-accent' : 'tag-neutral'; ?>" style="white-space:nowrap"><?php echo $ok ? '✓ ถูกต้อง' : '✗ ไม่ถูกต้อง'; ?></span>
+            <?php endif; ?>
           </div>
-          <p class="card-body" style="margin-top:6px">คำตอบของคุณ: <?php echo h(format_answer_label($row, $row['answer_json'], $opts)); ?></p>
-          <?php if (!$ok): ?>
-            <?php $correctLabels = array_map(static fn ($o) => $o['label'], array_filter($opts, static fn ($o) => (bool) $o['is_correct'])); ?>
-            <p class="card-body" style="margin-top:-6px">เฉลย: <?php echo h(implode(', ', $correctLabels)); ?></p>
+          <p class="card-body" style="margin-top:6px">
+            <strong>คำตอบของคุณ:</strong> <?php echo h(format_answer_label($row, $row['answer_json'], $opts)); ?>
+          </p>
+          <?php if ($showAnswersEnabled && !empty($correctLabels)): ?>
+            <p class="card-body" style="margin-top:2px;color:<?php echo $ok ? '#3b7a57' : '#b45309'; ?>">
+              <strong>เฉลย:</strong> <?php echo h(implode(', ', $correctLabels)); ?>
+            </p>
+          <?php elseif ($showScoreEnabled && $row['scored'] && !$ok && !empty($correctLabels)): ?>
+            <p class="card-body" style="margin-top:2px;color:#b45309">
+              <strong>เฉลย:</strong> <?php echo h(implode(', ', $correctLabels)); ?>
+            </p>
           <?php endif; ?>
         </div>
       <?php endforeach; ?>
