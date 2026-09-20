@@ -84,7 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     $title = trim($_POST['title'] ?? '');
     $shuffle = isset($_POST['shuffle']) ? 1 : 0;
     $showScore = isset($_POST['show_score']) ? 1 : 0;
-    $showAnswers = isset($_POST['show_answers']) ? 1 : 0;
+    $showAnswers        = isset($_POST['show_answers']) ? 1 : 0;
+    $requireAllAnswers  = isset($_POST['require_all_answers']) ? 1 : 0;
 
     $pfKeys = $_POST['pf_key'] ?? [];
     $pfLabels = $_POST['pf_label'] ?? [];
@@ -105,8 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     if ($title === '') {
         $errors[] = 'กรุณากรอกชื่อฟอร์ม';
     } else {
-        $upd = db()->prepare('UPDATE forms SET title = ?, shuffle = ?, show_score = ?, show_answers = ?, personal_fields_json = ? WHERE id = ? AND user_id = ?');
-        $upd->execute([$title, $shuffle, $showScore, $showAnswers, json_encode($personalFields, JSON_UNESCAPED_UNICODE), $formId, site_user_id()]);
+        $upd = db()->prepare('UPDATE forms SET title = ?, shuffle = ?, show_score = ?, show_answers = ?, require_all_answers = ?, personal_fields_json = ? WHERE id = ? AND user_id = ?');
+        $upd->execute([$title, $shuffle, $showScore, $showAnswers, $requireAllAnswers, json_encode($personalFields, JSON_UNESCAPED_UNICODE), $formId, site_user_id()]);
         $notices[] = 'บันทึกการตั้งค่าแล้ว';
         $stmt->execute([$formId, site_user_id()]);
         $form = $stmt->fetch();
@@ -151,6 +152,9 @@ require __DIR__ . '/includes/site_layout_start.php';
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
           <input type="checkbox" name="show_answers" <?php echo ($form['show_answers'] ?? 0) ? 'checked' : ''; ?>> แสดงเฉลยหลังตอบ
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" name="require_all_answers" <?php echo ($form['require_all_answers'] ?? 1) ? 'checked' : ''; ?>> บังคับตอบทุกข้อก่อนส่ง
         </label>
       </div>
 

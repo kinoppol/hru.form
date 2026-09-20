@@ -303,12 +303,13 @@ body{background:radial-gradient(900px 500px at 10% 0%,color-mix(in srgb,var(--fa
   </div>
 
   <?php else: ?>
-  <form method="post">
+  <form method="post" id="quiz-form" data-require-all="<?php echo (int) ($form['require_all_answers'] ?? 1); ?>">
     <input type="hidden" name="token" value="<?php echo h($token); ?>">
     <input type="hidden" name="step" value="quiz">
+    <div id="quiz-error-banner" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:14px;color:#b91c1c;font-weight:600"></div>
     <div style="display:grid;gap:14px">
       <?php foreach ($orderedQuestions as $i => $q): ?>
-        <div class="f-q">
+        <div class="f-q" data-qid="<?php echo (int) $q['id']; ?>" data-qtype="<?php echo h($q['type']); ?>" data-qno="<?php echo $i + 1; ?>">
           <div class="f-q-num"><?php echo $i + 1; ?></div>
           <div class="f-q-text"><?php echo nl2br(h($q['text'])); ?></div>
           <div class="f-q-type"><?php echo h(question_type_label($q['type'])); ?></div>
@@ -366,9 +367,48 @@ body{background:radial-gradient(900px 500px at 10% 0%,color-mix(in srgb,var(--fa
 
     <div style="display:flex;gap:10px;margin-top:24px">
       <button type="submit" name="step" value="back" class="f-btn f-btn-ghost" formnovalidate style="min-width:110px">← ย้อนกลับ</button>
-      <button type="submit" class="f-btn f-btn-primary">ส่งคำตอบ ✓</button>
+      <button type="submit" id="quiz-submit" class="f-btn f-btn-primary">ส่งคำตอบ ✓</button>
     </div>
   </form>
+  <script>
+  (function(){
+    var form = document.getElementById('quiz-form');
+    if (!form || form.dataset.requireAll !== '1') return;
+    var submitBtn = document.getElementById('quiz-submit');
+    var banner = document.getElementById('quiz-error-banner');
+    submitBtn.addEventListener('click', function(e){
+      var unanswered = [];
+      form.querySelectorAll('.f-q[data-qid]').forEach(function(card){
+        var qid = card.dataset.qid;
+        var qtype = card.dataset.qtype;
+        var qno = card.dataset.qno;
+        var answered = false;
+        if (qtype === 'checkbox') {
+          answered = card.querySelectorAll('input[type=checkbox]:checked').length > 0;
+        } else if (qtype === 'short') {
+          var ta = card.querySelector('textarea');
+          answered = ta && ta.value.trim() !== '';
+        } else if (qtype === 'dropdown') {
+          var sel = card.querySelector('select');
+          answered = sel && sel.value !== '';
+        } else {
+          answered = card.querySelectorAll('input[type=radio]:checked').length > 0;
+        }
+        if (!answered) unanswered.push(parseInt(qno));
+      });
+      if (unanswered.length > 0) {
+        e.preventDefault();
+        banner.style.display = 'block';
+        banner.textContent = 'กรุณาตอบข้อที่ยังไม่ได้ตอบ: ข้อ ' + unanswered.join(', ');
+        banner.scrollIntoView({behavior:'smooth', block:'nearest'});
+        var firstCard = form.querySelector('.f-q[data-qno="' + unanswered[0] + '"]');
+        if (firstCard) firstCard.scrollIntoView({behavior:'smooth', block:'center'});
+      }
+    });
+    form.addEventListener('change', function(){ banner.style.display = 'none'; });
+    form.addEventListener('input', function(){ banner.style.display = 'none'; });
+  })();
+  </script>
   <?php endif; ?>
 </div>
 <?php require __DIR__ . '/includes/site_layout_end.php'; ?>
