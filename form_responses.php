@@ -36,10 +36,26 @@ if (isset($_GET['deleted'])) {
 
 $rStmt = db()->prepare('
     SELECT r.id, r.score, r.max_score, r.submitted_at, r.personal_data_json
-    FROM form_responses r WHERE r.form_id = ? ORDER BY r.submitted_at DESC
+    FROM form_responses r WHERE r.form_id = ? ORDER BY r.submitted_at ASC, r.id ASC
 ');
 $rStmt->execute([$formId]);
 $responses = $rStmt->fetchAll();
+foreach ($responses as $n => &$rr) { $rr['no'] = $n + 1; }
+unset($rr);
+
+// sorting (applies to screen and print)
+$sortBy  = (($_GET['sort'] ?? 'time') === 'score' && $form['show_score']) ? 'score' : 'time';
+$sortDir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+usort($responses, function ($a, $b) use ($sortBy, $sortDir) {
+    $c = strcmp((string) $a['submitted_at'], (string) $b['submitted_at']);
+    if ($sortBy === 'score') {
+        $pa = $a['max_score'] > 0 ? $a['score'] / $a['max_score'] : 0;
+        $pb = $b['max_score'] > 0 ? $b['score'] / $b['max_score'] : 0;
+        $c = ($pa <=> $pb) ?: $c;
+    }
+    if ($c === 0) { $c = $a['id'] <=> $b['id']; }
+    return $sortDir === 'asc' ? $c : -$c;
+});
 
 $total    = count($responses);
 $avgScore = 0;
@@ -69,6 +85,17 @@ require __DIR__ . '/includes/site_layout_start.php';
     </div>
     <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap">
       <a class="btn btn-secondary" href="form_edit.php?id=<?php echo $formId; ?>">← แก้ไขฟอร์ม</a>
+      <form method="get" style="margin:0;display:flex;gap:6px;align-items:center">
+        <input type="hidden" name="form_id" value="<?php echo $formId; ?>">
+        <select name="sort" onchange="this.form.submit()" style="padding:8px 10px;border-radius:8px;border:1px solid var(--color-divider)">
+          <option value="time"<?php echo $sortBy === 'time' ? ' selected' : ''; ?>>เรียงตามเวลาที่ตอบ</option>
+          <?php if ($form['show_score']): ?><option value="score"<?php echo $sortBy === 'score' ? ' selected' : ''; ?>>เรียงตามคะแนน</option><?php endif; ?>
+        </select>
+        <select name="dir" onchange="this.form.submit()" style="padding:8px 10px;border-radius:8px;border:1px solid var(--color-divider)">
+          <option value="desc"<?php echo $sortDir === 'desc' ? ' selected' : ''; ?>>มาก → น้อย / ใหม่ → เก่า</option>
+          <option value="asc"<?php echo $sortDir === 'asc' ? ' selected' : ''; ?>>น้อย → มาก / เก่า → ใหม่</option>
+        </select>
+      </form>
       <button class="btn btn-secondary" onclick="window.print()">🖨 พิมพ์รายการ</button>
     </div>
   </div>
@@ -123,7 +150,7 @@ require __DIR__ . '/includes/site_layout_start.php';
             <?php $pd = json_decode($r['personal_data_json'] ?? '{}', true) ?: []; ?>
             <?php $pct = ($r['max_score'] > 0) ? round($r['score'] / $r['max_score'] * 100) : null; ?>
             <tr style="border-top:1px solid var(--color-divider)">
-              <td style="padding:12px 16px;opacity:.5;font-size:12px"><?php echo $total - $i; ?></td>
+              <td style="padding:12px 16px;opacity:.5;font-size:12px"><?php echo (int) $r['no']; ?></td>
               <?php foreach ($personalFields as $pf): ?>
                 <td style="padding:12px 16px"><?php echo h($pd[$pf['key']] ?? '—'); ?></td>
               <?php endforeach; ?>
