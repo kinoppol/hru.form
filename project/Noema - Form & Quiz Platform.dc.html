@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-ae8481a5-5c2a-4240-88a2-bcdc684092ec/styles.css">
+<script src="_ds/nocturne-ae8481a5-5c2a-4240-88a2-bcdc684092ec/_ds_bundle.js"></script>
+<style>
+body{margin:0}
+a{color:var(--color-accent);text-decoration:none}
+a:hover{text-decoration:underline}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.noema-screen{animation:fadeUp .35s ease both}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);display:flex;flex-direction:column">
+
+<header class="nav" style="padding:16px 32px;border-bottom:1px solid var(--color-divider)">
+  <span class="nav-brand" style="cursor:pointer" onClick="{{goLanding}}">Noema</span>
+  <span class="tag tag-outline">{{screenLabel}}</span>
+  <sc-if value="{{isLanding}}" hint-placeholder-val="{{true}}">
+    <a href="{{hashHref}}" onClick="{{onLoginLinkClick}}">เข้าสู่ระบบ</a>
+    <button type="button" class="btn btn-primary" onClick="{{goAuthSignup}}">เริ่มใช้งานฟรี</button>
+  </sc-if>
+</header>
+
+<main style="flex:1">
+
+<sc-if value="{{isLanding}}" hint-placeholder-val="{{true}}">
+<section class="noema-screen" style="max-width:1080px;margin:0 auto;padding:96px 32px 72px">
+  <div style="max-width:680px">
+    <span class="tag tag-accent">ยุคใหม่ของฟอร์มและแบบทดสอบ</span>
+    <h1 style="font-size:50px;margin-top:18px">สร้างฟอร์มและแบบทดสอบ ให้ AI ช่วยคุณตั้งแต่ต้นจนจบ</h1>
+    <p style="font-size:17px;opacity:.8;max-width:56ch">นำเข้าคลังคำถามเดิมของคุณ ไม่ว่าจะเป็น Aiken, GIFT, CSV/Excel หรือไฟล์ส่งออกจาก Google Forms แล้วแชร์ลิงก์สั้นให้กลุ่มเป้าหมายตอบได้ในไม่กี่วินาที</p>
+    <div style="display:flex;gap:12px;margin-top:28px;flex-wrap:wrap">
+      <button type="button" class="btn btn-primary" onClick="{{goAuthSignup}}">เริ่มใช้งานฟรี<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></button>
+      <button type="button" class="btn btn-secondary" onClick="{{goRespondPreview}}">ลองทำแบบทดสอบตัวอย่าง</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:80px">
+    <div class="card elev-sm">
+      <div class="card-kicker">นำเข้าได้ทันที</div>
+      <div class="card-title">รองรับหลายฟอร์แมต</div>
+      <p class="card-body">นำเข้าคำถามจากไฟล์ Aiken, GIFT, CSV/Excel หรือไฟล์ส่งออกจาก Google Forms และ QTI ได้ในคลิกเดียว</p>
+    </div>
+    <div class="card elev-sm">
+      <div class="card-kicker">แชร์ง่าย</div>
+      <div class="card-title">ลิงก์สั้นพร้อมแชร์</div>
+      <p class="card-body">สร้างลิงก์สั้นให้กลุ่มเป้าหมายตอบแบบฟอร์มหรือแบบทดสอบ กำหนดได้ว่าต้องเข้าสู่ระบบก่อนตอบหรือไม่</p>
+    </div>
+    <div class="card elev-sm">
+      <div class="card-kicker">ควบคุมได้เอง</div>
+      <div class="card-title">แสดง/ไม่แสดงคะแนน</div>
+      <p class="card-body">เลือกได้ว่าจะให้ผู้ตอบเห็นคะแนนและเฉลยข้อถูก-ผิดทันทีหลังส่งคำตอบ หรือเก็บไว้ดูฝั่งเดียว</p>
+    </div>
+    <div class="card elev-sm">
+      <div class="card-kicker">แยกส่วนชัดเจน</div>
+      <div class="card-title">ข้อมูลผู้ตอบ vs แบบทดสอบ</div>
+      <p class="card-body">แบ่งส่วนข้อมูลส่วนตัวออกจากคำตอบแบบทดสอบ พร้อมสุ่มลำดับคำถามในแต่ละส่วนได้</p>
+    </div>
+  </div>
+</section>
+</sc-if>
+
+<sc-if value="{{isAuth}}" hint-placeholder-val="{{false}}">
+<section class="noema-screen" style="display:flex;justify-content:center;padding:80px 24px">
+  <div class="card elev-md" style="width:100%;max-width:400px;padding:28px">
+    <div class="seg" role="radiogroup" aria-label="โหมดเข้าสู่ระบบ" style="margin-bottom:22px;width:100%">
+      <label class="seg-opt" style="flex:1;justify-content:center"><input type="radio" name="authmode" checked="{{isLoginMode}}" onChange="{{switchToLogin}}"/>เข้าสู่ระบบ</label>
+      <label class="seg-opt" style="flex:1;justify-content:center"><input type="radio" name="authmode" checked="{{isSignupMode}}" onChange="{{switchToSignup}}"/>สมัครสมาชิก</label>
+    </div>
+    <sc-if value="{{isSignupMode}}" hint-placeholder-val="{{false}}">
+      <div class="field"><label for="noema-fullname">ชื่อ-นามสกุล</label><input class="input" id="noema-fullname" placeholder="สมชาย ใจดี"/></div>
+    </sc-if>
+    <div class="field"><label for="noema-email">อีเมล</label><input class="input" id="noema-email" type="email" placeholder="you@example.com"/></div>
+    <div class="field"><label for="noema-pw">รหัสผ่าน</label><input class="input" id="noema-pw" type="password" placeholder="••••••••"/></div>
+    <button type="button" class="btn btn-primary btn-block" onClick="{{submitAuth}}">{{authButtonLabel}}</button>
+    <p class="text-muted" style="font-size:12px;text-align:center;margin-top:14px;margin-bottom:0">สมัครสมาชิกได้ฟรี ไม่ต้องใช้บัตรเครดิต</p>
+  </div>
+</section>
+</sc-if>
+
+<sc-if value="{{isDashboard}}" hint-placeholder-val="{{false}}">
+<section class="noema-screen" style="max-width:1000px;margin:0 auto;padding:44px 28px 80px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px">
+    <div>
+      <h2 style="margin:0 0 4px">ฟอร์มของฉัน</h2>
+      <p class="text-muted" style="margin:0;font-size:13px">จัดการฟอร์มและแบบทดสอบทั้งหมดของคุณที่นี่</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button type="button" class="btn btn-secondary" onClick="{{openImportDialog}}">นำเข้าแบบทดสอบ</button>
+      <button type="button" class="btn btn-primary">+ สร้างฟอร์มใหม่</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+    <sc-for list="{{forms}}" as="form" hint-placeholder-count="3">
+      <div class="card elev-sm">
+        <div class="card-kicker">{{form.status}}</div>
+        <div class="card-title">{{form.title}}</div>
+        <div class="card-meta"><svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor"><path d="M247.42,117l-14-35A16.06,16.06,0,0,0,218.58,72H164V64a8,8,0,0,0-8-8H32A16,16,0,0,0,16,72V184a16,16,0,0,0,16,16H45a28,28,0,0,0,54,0h58a28,28,0,0,0,54,0h17a16,16,0,0,0,16-16V120A8,8,0,0,0,247.42,117ZM164,88h54.58l9.6,24H164ZM72,204a12,12,0,1,1,12-12A12,12,0,0,1,72,204Zm37-28H62.68A28,28,0,0,0,32,180V72H148V176ZM184,204a12,12,0,1,1,12-12A12,12,0,0,1,184,204Zm40-24H221a28,28,0,0,0-49,0H164V128h72v52Z"/></svg><span>{{form.responses}} คำตอบ · สร้างเมื่อ {{form.createdAt}}</span></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <sc-if value="{{form.shuffle}}" hint-placeholder-val="{{false}}"><span class="tag tag-neutral">สุ่มคำถาม</span></sc-if>
+          <span class="tag tag-neutral">{{form.showScoreLabel}}</span>
+        </div>
+        <div>
+          <div style="font-size:11px;opacity:.6;margin-bottom:5px">โทนสีของฟอร์ม</div>
+          <div style="display:flex;gap:6px">
+            <sc-for list="{{form.swatches}}" as="sw" hint-placeholder-count="6">
+              <button type="button" aria-label="{{sw.label}}" title="{{sw.label}}" style="{{sw.style}}" onClick="{{sw.onClick}}"></button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button type="button" class="btn btn-secondary" style="flex:1" onClick="{{form.onPreview}}">ดูตัวอย่าง</button>
+          <button type="button" class="btn btn-ghost btn-icon" aria-label="แชร์ลิงก์" onClick="{{form.onShare}}"><svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor"><path d="M176,160a39.89,39.89,0,0,0-28.62,12.09l-46.1-29.61a39.8,39.8,0,0,0,0-28.96l46.1-29.61a40,40,0,1,0-8.66-12.06L92.56,110.09a40,40,0,1,0,0,71.82l46.16,29.24A40,40,0,1,0,176,160Zm0-128a24,24,0,1,1-24,24A24,24,0,0,1,176,32ZM64,152a24,24,0,1,1,24-24A24,24,0,0,1,64,152Zm112,72a24,24,0,1,1,24-24A24,24,0,0,1,176,224Z"/></svg></button>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</sc-if>
+
+<sc-if value="{{isRespond}}" hint-placeholder-val="{{false}}">
+<section class="noema-screen" style="max-width:640px;margin:0 auto;padding:48px 24px 80px;--color-accent:{{activeThemeColor}}">
+  <div style="height:3px;background:var(--color-divider);border-radius:2px;margin-bottom:20px;overflow:hidden">
+    <div style="height:100%;background:var(--color-accent);border-radius:2px;transition:width .3s;width:{{progressPct}}"></div>
+  </div>
+
+  <sc-if value="{{isPersonalSection}}" hint-placeholder-val="{{true}}">
+    <span class="tag tag-outline">ส่วนที่ 1 จาก 2 · ข้อมูลผู้ตอบ</span>
+    <h2 style="margin-top:14px">ข้อมูลผู้ตอบ</h2>
+    <p class="text-muted" style="font-size:13px">ข้อมูลในส่วนนี้จะถูกจัดเก็บแยกจากคำตอบแบบทดสอบของคุณ</p>
+    <div style="display:grid;gap:16px;margin-top:8px">
+      <sc-for list="{{personalFields}}" as="pf" hint-placeholder-count="3">
+        <div class="field">
+          <label for="{{pf.id}}">{{pf.label}}</label>
+          <input class="input" id="{{pf.id}}" type="{{pf.type}}" value="{{pf.value}}" onChange="{{pf.onChange}}" placeholder="{{pf.placeholder}}"/>
+          <sc-if value="{{pf.error}}" hint-placeholder-val="{{false}}"><div style="font-size:12px;color:var(--color-accent-300);margin-top:4px">{{pf.error}}</div></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <button type="button" class="btn btn-primary btn-block" style="margin-top:22px" onClick="{{continueToQuiz}}">ถัดไป: เริ่มทำแบบทดสอบ</button>
+  </sc-if>
+
+  <sc-if value="{{isQuizSection}}" hint-placeholder-val="{{false}}">
+    <span class="tag tag-outline">ส่วนที่ 2 จาก 2 · แบบทดสอบ</span>
+    <h2 style="margin-top:14px">แบบทดสอบความรู้พื้นฐาน AI</h2>
+    <div style="display:grid;gap:14px;margin-top:8px">
+      <sc-for list="{{quizQuestions}}" as="q" hint-placeholder-count="5">
+        <div class="card elev-sm">
+          <div class="card-kicker">คำถามที่ {{q.number}} · {{q.typeLabel}}</div>
+          <div class="card-title" style="font-size:16px;margin-bottom:4px">{{q.text}}</div>
+
+          <sc-if value="{{q.isMC}}" hint-placeholder-val="{{false}}">
+            <div style="display:grid;gap:6px;margin-top:6px">
+              <sc-for list="{{q.options}}" as="opt" hint-placeholder-count="4">
+                <label class="radio"><input type="radio" name="{{q.id}}" checked="{{opt.checked}}" onChange="{{opt.onClick}}"/><span class="dot"></span>{{opt.label}}</label>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{q.isCheckbox}}" hint-placeholder-val="{{false}}">
+            <div style="display:grid;gap:6px;margin-top:6px">
+              <sc-for list="{{q.options}}" as="opt" hint-placeholder-count="4">
+                <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer">
+                  <input type="checkbox" checked="{{opt.checked}}" onChange="{{opt.onClick}}" style="position:absolute;opacity:0;width:0;height:0"/>
+                  <span style="{{opt.boxStyle}}"></span>{{opt.label}}
+                </label>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{q.isDropdown}}" hint-placeholder-val="{{false}}">
+            <select class="input" style="margin-top:6px" value="{{q.selectValue}}" onChange="{{q.onSelectChange}}">
+              <option value="">— เลือกคำตอบ —</option>
+              <sc-for list="{{q.options}}" as="opt" hint-placeholder-count="4">
+                <option value="{{opt.id}}">{{opt.label}}</option>
+              </sc-for>
+            </select>
+          </sc-if>
+
+          <sc-if value="{{q.isScale}}" hint-placeholder-val="{{false}}">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <sc-for list="{{q.scaleOptions}}" as="sc" hint-placeholder-count="5">
+                <button type="button" style="{{sc.style}}" onClick="{{sc.onClick}}">{{sc.value}}</button>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{q.isShort}}" hint-placeholder-val="{{false}}">
+            <textarea class="input" rows="3" style="margin-top:6px" placeholder="พิมพ์คำตอบของคุณ" value="{{q.textValue}}" onChange="{{q.onTextChange}}"></textarea>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button type="button" class="btn btn-ghost" onClick="{{backToPersonal}}">ย้อนกลับ</button>
+      <button type="button" class="btn btn-primary btn-block" onClick="{{submitQuiz}}">ส่งคำตอบ</button>
+    </div>
+  </sc-if>
+</section>
+</sc-if>
+
+<sc-if value="{{isResults}}" hint-placeholder-val="{{false}}">
+<section class="noema-screen" style="max-width:640px;margin:0 auto;padding:56px 24px 80px;--color-accent:{{activeThemeColor}}">
+  <div class="card elev-md" style="text-align:center;padding:36px">
+    <sc-if value="{{showScoreEnabled}}" hint-placeholder-val="{{true}}">
+      <div class="card-kicker">คะแนนของคุณ</div>
+      <h1 style="font-size:48px;margin:8px 0">{{scoreText}}</h1>
+      <p class="text-muted" style="margin:0">{{percentText}}</p>
+    </sc-if>
+    <sc-if value="{{hideScoreBlock}}" hint-placeholder-val="{{false}}">
+      <div class="card-kicker">ส่งคำตอบสำเร็จ</div>
+      <h2 style="margin:10px 0 6px">ขอบคุณสำหรับการตอบแบบทดสอบ</h2>
+      <p class="text-muted" style="margin:0">เจ้าของฟอร์มเลือกไม่แสดงคะแนนสำหรับแบบทดสอบนี้</p>
+    </sc-if>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:26px 0 14px;gap:12px;flex-wrap:wrap">
+    <h3 style="margin:0">รายละเอียดคำตอบ</h3>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;opacity:.75;cursor:pointer">
+      มุมมองเจ้าของฟอร์ม: แสดงคะแนน
+      <span style="position:relative;display:inline-block;width:34px;height:19px">
+        <input type="checkbox" checked="{{showScoreEnabled}}" onChange="{{toggleShowScore}}" style="position:absolute;opacity:0;width:0;height:0"/>
+        <span style="{{switchTrackStyle}}"><span style="{{switchKnobStyle}}"></span></span>
+      </span>
+    </label>
+  </div>
+
+  <sc-if value="{{showScoreEnabled}}" hint-placeholder-val="{{true}}">
+    <div style="display:grid;gap:10px">
+      <sc-for list="{{reviewQuestions}}" as="rq" hint-placeholder-count="3">
+        <div class="card elev-sm">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+            <div class="card-title" style="font-size:14px">{{rq.text}}</div>
+            <span style="{{rq.tagStyle}}">{{rq.tagLabel}}</span>
+          </div>
+          <p class="card-body" style="margin-top:6px">คำตอบของคุณ: {{rq.userAnswer}}</p>
+          <sc-if value="{{rq.showCorrect}}" hint-placeholder-val="{{false}}"><p class="card-body" style="margin-top:-6px">เฉลย: {{rq.correctAnswer}}</p></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <div style="display:flex;gap:10px;margin-top:26px">
+    <button type="button" class="btn btn-secondary" style="flex:1" onClick="{{goDashboard}}">กลับหน้าหลัก</button>
+    <button type="button" class="btn btn-ghost" style="flex:1" onClick="{{retakeQuiz}}">ลองทำอีกครั้ง</button>
+  </div>
+</section>
+</sc-if>
+
+</main>
+
+<div style="position:fixed;bottom:16px;right:16px;display:flex;gap:4px;background:var(--color-surface);padding:6px;border-radius:var(--radius-md);box-shadow:var(--shadow-md);z-index:80;flex-wrap:wrap;max-width:280px">
+  <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onClick="{{goLanding}}">Landing</button>
+  <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onClick="{{goAuthLogin}}">Auth</button>
+  <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onClick="{{goDashboard}}">Dashboard</button>
+  <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onClick="{{goRespondPreview}}">ตอบฟอร์ม</button>
+  <button type="button" class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onClick="{{jumpToResultsDemo}}">ผลลัพธ์</button>
+</div>
+
+<sc-if value="{{shareDialogOpen}}" hint-placeholder-val="{{false}}">
+  <div class="dialog-backdrop" onClick="{{closeShareDialogBackdrop}}">
+    <div class="dialog" role="dialog" aria-modal="true" onClick="{{stopPropagation}}">
+      <div class="dialog-title">แชร์ลิงก์แบบฟอร์ม</div>
+      <div class="dialog-body">ส่งลิงก์นี้ให้กลุ่มเป้าหมายเพื่อตอบ "{{shareFormTitle}}"</div>
+      <div style="display:flex;gap:8px">
+        <input class="input" readOnly="{{true}}" value="{{shareLink}}"/>
+        <button type="button" class="btn btn-primary" onClick="{{copyShareLink}}">{{copyButtonLabel}}</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;margin-top:6px;cursor:pointer">
+        <span style="position:relative;display:inline-block;width:34px;height:19px">
+          <input type="checkbox" checked="{{requireLoginToggle}}" onChange="{{toggleRequireLogin}}" style="position:absolute;opacity:0;width:0;height:0"/>
+          <span style="{{requireLoginTrackStyle}}"><span style="{{requireLoginKnobStyle}}"></span></span>
+        </span>
+        ต้องเข้าสู่ระบบก่อนตอบแบบฟอร์ม
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" onClick="{{closeShareDialog}}">ปิด</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{importDialogOpen}}" hint-placeholder-val="{{false}}">
+  <div class="dialog-backdrop" onClick="{{closeImportDialogBackdrop}}">
+    <div class="dialog" role="dialog" aria-modal="true" onClick="{{stopPropagation}}">
+      <div class="dialog-title">นำเข้าแบบทดสอบจากไฟล์</div>
+      <div class="dialog-body">ลากไฟล์มาวาง หรือเลือกไฟล์จากอุปกรณ์ของคุณ ระบบจะแยกคำถาม ตัวเลือก และเฉลยให้อัตโนมัติ</div>
+      <div style="border:1px dashed var(--color-divider);border-radius:var(--radius-md);padding:28px;text-align:center;color:color-mix(in srgb, var(--color-text) 55%, transparent);font-size:13px">
+        วางไฟล์ที่นี่
+        <div style="margin-top:12px"><button type="button" class="btn btn-secondary">เลือกไฟล์</button></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="tag tag-outline">Aiken</span>
+        <span class="tag tag-outline">GIFT</span>
+        <span class="tag tag-outline">CSV / Excel</span>
+        <span class="tag tag-outline">Google Forms export</span>
+        <span class="tag tag-outline">QTI</span>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" onClick="{{closeImportDialog}}">ปิด</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const PERSONAL_FIELD_DEFS = [
+  {key:'name', label:'ชื่อ-นามสกุล', required:true, type:'text', placeholder:'สมชาย ใจดี'},
+  {key:'email', label:'อีเมล', required:true, type:'email', placeholder:'you@example.com'},
+  {key:'dept', label:'หน่วยงาน/แผนก', required:false, type:'text', placeholder:'เช่น ฝ่ายพัฒนาผลิตภัณฑ์'}
+];
+
+const QUESTIONS = [
+  {id:'q1', type:'mc', scored:true, text:'Machine Learning (ML) เป็นสาขาย่อยของศาสตร์ใด', options:[
+    {id:'a',label:'Artificial Intelligence (AI)'},{id:'b',label:'Blockchain'},{id:'c',label:'Cybersecurity'},{id:'d',label:'Cloud Computing'}], correct:['a']},
+  {id:'q2', type:'checkbox', scored:true, text:'ข้อใดเป็นตัวอย่างของ Generative AI (เลือกได้มากกว่า 1 ข้อ)', options:[
+    {id:'a',label:'GPT (language model)'},{id:'b',label:'ResNet (image classifier)'},{id:'c',label:'Diffusion model'},{id:'d',label:'Random Forest'}], correct:['a','c']},
+  {id:'q3', type:'dropdown', scored:true, text:'Turing Test ถูกเสนอโดยใคร', options:[
+    {id:'a',label:'Alan Turing'},{id:'b',label:'Alonzo Church'},{id:'c',label:'John McCarthy'},{id:'d',label:'Marvin Minsky'}], correct:['a']},
+  {id:'q4', type:'scale', scored:false, text:'คุณคิดว่าตนเองคุ้นเคยกับเครื่องมือ AI มากเพียงใด (1 = ไม่คุ้นเคย, 5 = คุ้นเคยมาก)'},
+  {id:'q5', type:'short', scored:false, text:'อธิบายสั้นๆ ว่า AI ต่างจาก Automation ทั่วไปอย่างไร'}
+];
+
+const SAMPLE_FORMS = [
+  {id:1, title:'แบบทดสอบความรู้พื้นฐาน AI', status:'เผยแพร่แล้ว', responses:128, createdAt:'12 ก.ย. 2569', shuffle:true, showScore:true},
+  {id:2, title:'แบบสำรวจความพึงพอใจพนักงาน Q3', status:'เผยแพร่แล้ว', responses:64, createdAt:'2 ก.ย. 2569', shuffle:false, showScore:false},
+  {id:3, title:'ใบสมัครเข้าร่วมกิจกรรม Hackathon', status:'ฉบับร่าง', responses:0, createdAt:'18 ก.ย. 2569', shuffle:false, showScore:true}
+];
+
+const THEME_COLORS = [
+  {hex:'#9184d9', label:'ม่วง (ค่าเริ่มต้น)'},
+  {hex:'#5c9bd8', label:'ฟ้า'},
+  {hex:'#4fbfab', label:'เขียวมิ้นท์'},
+  {hex:'#d9a24f', label:'เหลืองอำพัน'},
+  {hex:'#d97a95', label:'โรส'},
+  {hex:'#93c15c', label:'เขียวมะนาว'}
+];
+
+function shuffleArr(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+class Component extends DCLogic {
+  state = {
+    screen: 'landing',
+    authMode: 'login',
+    section: 0,
+    personalInfo: {},
+    personalErrors: {},
+    answers: {},
+    shuffledQuestions: null,
+    activeForm: SAMPLE_FORMS[0],
+    shareDialogOpen: false,
+    shareFormTitle: '',
+    requireLoginToggle: false,
+    linkCopied: false,
+    importDialogOpen: false,
+    showScoreEnabled: true,
+    formColors: { 1: THEME_COLORS[0].hex, 2: THEME_COLORS[2].hex, 3: THEME_COLORS[3].hex },
+    activeThemeColor: THEME_COLORS[0].hex
+  };
+
+  goTo(screen) { this.setState({ screen }); }
+
+  setThemeColor(formId, hex) {
+    this.setState(s => ({ formColors: { ...s.formColors, [formId]: hex } }));
+  }
+
+  startRespondFlow(form) {
+    const color = this.state.formColors[form.id] || THEME_COLORS[0].hex;
+    this.setState({
+      screen: 'respond', section: 0, personalInfo: {}, personalErrors: {},
+      answers: {}, shuffledQuestions: form.shuffle ? shuffleArr(QUESTIONS) : QUESTIONS.slice(),
+      activeForm: form, showScoreEnabled: form.showScore, activeThemeColor: color
+    });
+  }
+
+  handlePersonalChange(key, e) {
+    this.setState(s => ({ personalInfo: { ...s.personalInfo, [key]: e.target.value } }));
+  }
+
+  continueToQuiz() {
+    const errors = {};
+    PERSONAL_FIELD_DEFS.forEach(f => {
+      if (f.required && !(this.state.personalInfo[f.key] || '').trim()) errors[f.key] = 'จำเป็นต้องกรอกข้อมูลนี้';
+    });
+    if (Object.keys(errors).length) { this.setState({ personalErrors: errors }); return; }
+    this.setState({ section: 1, personalErrors: {} });
+  }
+
+  backToPersonal() { this.setState({ section: 0 }); }
+
+  setAnswer(qid, value) {
+    this.setState(s => ({ answers: { ...s.answers, [qid]: value } }));
+  }
+
+  toggleCheckboxAnswer(qid, optId) {
+    this.setState(s => {
+      const cur = s.answers[qid] || [];
+      const next = cur.includes(optId) ? cur.filter(x => x !== optId) : [...cur, optId];
+      return { answers: { ...s.answers, [qid]: next } };
+    });
+  }
+
+  computeScore() {
+    let n = 0;
+    QUESTIONS.forEach(q => {
+      if (!q.scored) return;
+      const ans = this.state.answers[q.id];
+      if (!ans) return;
+      if (q.type === 'checkbox') {
+        if (Array.isArray(ans) && ans.length === q.correct.length && q.correct.every(c => ans.includes(c))) n++;
+      } else if (ans === q.correct[0]) n++;
+    });
+    return n;
+  }
+
+  submitQuiz() { this.setState({ screen: 'results' }); }
+
+  retakeQuiz() { this.startRespondFlow(this.state.activeForm); }
+
+  jumpToResultsDemo() {
+    this.setState({
+      activeForm: SAMPLE_FORMS[0], showScoreEnabled: true, activeThemeColor: this.state.formColors[1],
+      answers: { q1: 'a', q2: ['a', 'c'], q3: 'b', q4: 4, q5: 'AI ตัดสินใจและปรับตัวจากข้อมูล ส่วน automation ทำตามกฎที่ตั้งไว้ตายตัว' },
+      screen: 'results'
+    });
+  }
+
+  openShareDialog(form) { this.setState({ shareDialogOpen: true, shareFormTitle: form.title, linkCopied: false }); }
+  closeShareDialog() { this.setState({ shareDialogOpen: false }); }
+  copyShareLink() { this.setState({ linkCopied: true }); setTimeout(() => this.setState({ linkCopied: false }), 1500); }
+
+  renderVals() {
+    const s = this.state;
+    const screenLabels = { landing: 'Landing', auth: 'เข้าสู่ระบบ', dashboard: 'Dashboard', respond: 'ตอบแบบฟอร์ม', results: 'ผลลัพธ์' };
+
+    const personalFields = PERSONAL_FIELD_DEFS.map(f => ({
+      id: 'pf-' + f.key, label: f.label + (f.required ? ' *' : ' (ไม่บังคับ)'), type: f.type,
+      placeholder: f.placeholder, value: s.personalInfo[f.key] || '',
+      onChange: (e) => this.handlePersonalChange(f.key, e), error: s.personalErrors[f.key]
+    }));
+
+    const rawQuestions = s.shuffledQuestions || QUESTIONS;
+    const typeLabels = { mc: 'เลือกตอบข้อเดียว', checkbox: 'เลือกได้หลายข้อ', dropdown: 'เลือกจากรายการ', scale: 'ระดับความเห็น (ไม่ให้คะแนน)', short: 'คำตอบปลายเปิด (ไม่ให้คะแนน)' };
+
+    const quizQuestions = rawQuestions.map((q, i) => {
+      const ans = s.answers[q.id];
+      const base = { id: q.id, number: i + 1, text: q.text, typeLabel: typeLabels[q.type],
+        isMC: q.type === 'mc', isCheckbox: q.type === 'checkbox', isDropdown: q.type === 'dropdown',
+        isScale: q.type === 'scale', isShort: q.type === 'short' };
+      if (q.type === 'mc') {
+        base.options = q.options.map(o => ({ id: o.id, label: o.label, checked: ans === o.id, onClick: () => this.setAnswer(q.id, o.id) }));
+      } else if (q.type === 'checkbox') {
+        base.options = q.options.map(o => {
+          const checked = (ans || []).includes(o.id);
+          return { id: o.id, label: o.label, checked,
+            boxStyle: `width:16px;height:16px;flex:none;border-radius:4px;border:1.5px solid ${checked ? 'var(--color-accent)' : 'var(--color-divider)'};background:${checked ? 'var(--color-accent)' : 'transparent'}`,
+            onClick: () => this.toggleCheckboxAnswer(q.id, o.id) };
+        });
+      } else if (q.type === 'dropdown') {
+        base.options = q.options;
+        base.selectValue = ans || '';
+        base.onSelectChange = (e) => this.setAnswer(q.id, e.target.value);
+      } else if (q.type === 'scale') {
+        base.scaleOptions = [1, 2, 3, 4, 5].map(v => {
+          const sel = ans === v;
+          return { value: v, onClick: () => this.setAnswer(q.id, v),
+            style: `width:40px;height:40px;border-radius:var(--radius-md);cursor:pointer;font-family:var(--font-heading);font-size:14px;border:1px solid ${sel ? 'var(--color-accent)' : 'var(--color-divider)'};background:${sel ? 'color-mix(in srgb, var(--color-accent) 20%, transparent)' : 'transparent'};color:${sel ? 'var(--color-accent)' : 'var(--color-text)'}` };
+        });
+      } else if (q.type === 'short') {
+        base.textValue = ans || '';
+        base.onTextChange = (e) => this.setAnswer(q.id, e.target.value);
+      }
+      return base;
+    });
+
+    const scoredCount = QUESTIONS.filter(q => q.scored).length;
+    const score = this.computeScore();
+
+    const answerLabel = (q, ans) => {
+      if (ans === undefined || ans === null || ans === '' || (Array.isArray(ans) && !ans.length)) return 'ไม่ได้ตอบ';
+      if (q.type === 'checkbox') return ans.map(id => q.options.find(o => o.id === id)?.label).filter(Boolean).join(', ');
+      if (q.type === 'mc' || q.type === 'dropdown') return q.options.find(o => o.id === ans)?.label || 'ไม่ได้ตอบ';
+      return String(ans);
+    };
+    const correctLabel = (q) => q.options.filter(o => q.correct.includes(o.id)).map(o => o.label).join(', ');
+    const isCorrect = (q, ans) => {
+      if (q.type === 'checkbox') return Array.isArray(ans) && ans.length === q.correct.length && q.correct.every(c => ans.includes(c));
+      return ans === q.correct[0];
+    };
+
+    const reviewQuestions = QUESTIONS.filter(q => q.scored).map(q => {
+      const ans = s.answers[q.id];
+      const ok = isCorrect(q, ans);
+      return {
+        text: q.text, userAnswer: answerLabel(q, ans), correctAnswer: correctLabel(q), showCorrect: !ok,
+        tagLabel: ok ? 'ถูกต้อง' : 'ไม่ถูกต้อง',
+        tagStyle: `flex:none;display:inline-flex;align-items:center;font-size:11px;padding:3px 10px;border-radius:6px;${ok ? 'background:var(--color-accent-800);color:var(--color-accent-100)' : 'background:var(--color-neutral-800);color:var(--color-neutral-100)'}`
+      };
+    });
+
+    const forms = SAMPLE_FORMS.map(f => {
+      const current = s.formColors[f.id];
+      return {
+        id: f.id, title: f.title, status: f.status, responses: f.responses, createdAt: f.createdAt,
+        shuffle: f.shuffle, showScoreLabel: f.showScore ? 'แสดงคะแนนให้ผู้ตอบ' : 'ไม่แสดงคะแนน',
+        onPreview: () => this.startRespondFlow(f), onShare: () => this.openShareDialog(f),
+        swatches: THEME_COLORS.map(c => ({
+          hex: c.hex, label: c.label,
+          style: `width:20px;height:20px;border-radius:50%;background:${c.hex};cursor:pointer;border:2px solid ${c.hex === current ? 'var(--color-text)' : 'transparent'};box-shadow:0 0 0 1px var(--color-divider)`,
+          onClick: () => this.setThemeColor(f.id, c.hex)
+        }))
+      };
+    });
+
+    const mkSwitchStyles = (checked) => ({
+      track: `display:block;width:100%;height:100%;border-radius:10px;background:${checked ? 'var(--color-accent)' : 'var(--color-divider)'};transition:background .2s;position:relative`,
+      knob: `display:block;width:15px;height:15px;border-radius:50%;background:var(--color-bg);position:absolute;top:2px;left:${checked ? '17px' : '2px'};transition:left .2s`
+    });
+    const scoreSwitch = mkSwitchStyles(s.showScoreEnabled);
+    const loginSwitch = mkSwitchStyles(s.requireLoginToggle);
+
+    return {
+      screenLabel: screenLabels[s.screen],
+      isLanding: s.screen === 'landing', isAuth: s.screen === 'auth', isDashboard: s.screen === 'dashboard',
+      isRespond: s.screen === 'respond', isResults: s.screen === 'results',
+      goLanding: () => this.goTo('landing'),
+      goAuthLogin: () => this.setState({ screen: 'auth', authMode: 'login' }),
+      goAuthSignup: () => this.setState({ screen: 'auth', authMode: 'signup' }),
+      goDashboard: () => this.goTo('dashboard'),
+      goRespondPreview: () => this.startRespondFlow(SAMPLE_FORMS[0]),
+      jumpToResultsDemo: () => this.jumpToResultsDemo(),
+      hashHref: '#',
+      onLoginLinkClick: (e) => { e.preventDefault(); this.setState({ screen: 'auth', authMode: 'login' }); },
+
+      isLoginMode: s.authMode === 'login', isSignupMode: s.authMode === 'signup',
+      switchToLogin: () => this.setState({ authMode: 'login' }),
+      switchToSignup: () => this.setState({ authMode: 'signup' }),
+      authButtonLabel: s.authMode === 'login' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก',
+      submitAuth: () => this.goTo('dashboard'),
+
+      forms, openImportDialog: () => this.setState({ importDialogOpen: true }),
+      closeImportDialog: () => this.setState({ importDialogOpen: false }),
+      closeImportDialogBackdrop: (e) => { if (e.target === e.currentTarget) this.setState({ importDialogOpen: false }); },
+      importDialogOpen: s.importDialogOpen,
+
+      shareDialogOpen: s.shareDialogOpen, shareFormTitle: s.shareFormTitle,
+      shareLink: 'noema.app/f/' + (s.shareFormTitle ? s.shareFormTitle.length : 8) + 'k7x',
+      copyButtonLabel: s.linkCopied ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์',
+      copyShareLink: () => this.copyShareLink(),
+      closeShareDialog: () => this.closeShareDialog(),
+      closeShareDialogBackdrop: (e) => { if (e.target === e.currentTarget) this.closeShareDialog(); },
+      stopPropagation: (e) => e.stopPropagation(),
+      requireLoginToggle: s.requireLoginToggle,
+      toggleRequireLogin: () => this.setState(st => ({ requireLoginToggle: !st.requireLoginToggle })),
+      requireLoginTrackStyle: loginSwitch.track, requireLoginKnobStyle: loginSwitch.knob,
+
+      progressPct: s.section === 0 ? '50%' : '100%',
+      isPersonalSection: s.section === 0, isQuizSection: s.section === 1,
+      personalFields, continueToQuiz: () => this.continueToQuiz(),
+      backToPersonal: () => this.backToPersonal(),
+      quizQuestions, submitQuiz: () => this.submitQuiz(),
+
+      scoreText: score + ' / ' + scoredCount,
+      percentText: 'ทำได้ ' + Math.round((score / scoredCount) * 100) + '% ของคำถามที่ให้คะแนน',
+      showScoreEnabled: s.showScoreEnabled, hideScoreBlock: !s.showScoreEnabled,
+      toggleShowScore: () => this.setState(st => ({ showScoreEnabled: !st.showScoreEnabled })),
+      switchTrackStyle: scoreSwitch.track, switchKnobStyle: scoreSwitch.knob,
+      reviewQuestions, retakeQuiz: () => this.retakeQuiz(), activeThemeColor: s.activeThemeColor
+    };
+  }
+}
+
+</script>
+</body>
+</html>
