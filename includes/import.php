@@ -19,7 +19,7 @@ function import_parse_aiken(string $content): array
             continue;
         }
 
-        if (preg_match('/^([A-Za-z])\)\s*(.+)$/', $line, $m)) {
+        if (preg_match('/^([A-Za-z])[.)]\s*(.+)$/', $line, $m)) {
             if ($current !== null) {
                 $current['options'][] = ['key' => strtoupper($m[1]), 'label' => trim($m[2]), 'is_correct' => false];
             }
