@@ -11,7 +11,7 @@ require_once __DIR__ . '/includes/import.php';
 site_require_login();
 
 $formId = (int) ($_GET['id'] ?? 0);
-$stmt = db()->prepare('SELECT * FROM forms WHERE id = ? AND user_id = ?');
+$stmt = db()->prepare('SELECT * FROM forms WHERE id = ? AND user_id = ? AND deleted_at IS NULL');
 $stmt->execute([$formId, site_user_id()]);
 $form = $stmt->fetch();
 

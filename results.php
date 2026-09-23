@@ -10,7 +10,7 @@ require_once __DIR__ . '/includes/helpers.php';
 site_start_session();
 
 $rid = (int) ($_GET['rid'] ?? 0);
-$stmt = db()->prepare('SELECT r.*, f.title, f.theme_color, f.show_score, f.show_answers, f.user_id AS owner_id, f.share_token FROM form_responses r JOIN forms f ON f.id = r.form_id WHERE r.id = ?');
+$stmt = db()->prepare('SELECT r.*, f.title, f.theme_color, f.show_score, f.show_answers, f.user_id AS owner_id, f.share_token FROM form_responses r JOIN forms f ON f.id = r.form_id WHERE r.id = ? AND f.deleted_at IS NULL');
 $stmt->execute([$rid]);
 $response = $stmt->fetch();
 

@@ -10,7 +10,7 @@ require_once __DIR__ . '/includes/helpers.php';
 site_start_session();
 
 $token = $_GET['token'] ?? $_POST['token'] ?? '';
-$stmt = db()->prepare('SELECT * FROM forms WHERE share_token = ?');
+$stmt = db()->prepare('SELECT * FROM forms WHERE share_token = ? AND deleted_at IS NULL');
 $stmt->execute([$token]);
 $form = $stmt->fetch();
 
