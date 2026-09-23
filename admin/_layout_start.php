@@ -19,7 +19,7 @@ function h(string $v): string { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8')
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo isset($pageTitle) ? h($pageTitle) . ' - ' : ''; ?>ผู้ดูแลระบบ - HRU Form</title>
-<link rel="stylesheet" href="../assets/css/admin.css">
+<link rel="stylesheet" href="../assets/css/admin.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/admin.css'); ?>">
 </head>
 <body>
 <div class="topbar">

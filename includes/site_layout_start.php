@@ -8,7 +8,7 @@ declare(strict_types=1);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo isset($pageTitle) ? h($pageTitle) . ' - ' : ''; ?><?php echo h(app_name()); ?></title>
-<link rel="stylesheet" href="<?php echo isset($assetPrefix) ? h($assetPrefix) : ''; ?>assets/css/app.css">
+<link rel="stylesheet" href="<?php echo isset($assetPrefix) ? h($assetPrefix) : ''; ?>assets/css/app.css?v=<?php echo (int) @filemtime(__DIR__ . '/../assets/css/app.css'); ?>">
 </head>
 <body<?php echo isset($navBrand) ? ' class="respond"' : ''; ?>>
 <header class="nav">

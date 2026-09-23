@@ -188,7 +188,7 @@ $hasKey = $ai['ai_api_key'] !== '';
 
   function api(body) {
     return fetch('ai_api.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign(conn(), body)) })
-      .then(function (r) { return r.json().catch(function () { return { error: 'เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง' }; }).then(function (j) { if (!r.ok || j.error) throw new Error(j.error || 'HTTP ' + r.status); return j; }); });
+      .then(function (r) { return r.text().then(function (t) { try { return JSON.parse(t); } catch (e) { return { error: 'เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง (HTTP ' + r.status + '): ' + t.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200) }; } }).then(function (j) { if (!r.ok || j.error) throw new Error(j.error || 'HTTP ' + r.status); return j; }); });
   }
 
   function isOn(id) { return enabledModels.indexOf(id) !== -1; }
