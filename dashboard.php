@@ -82,15 +82,28 @@ require __DIR__ . '/includes/site_layout_start.php';
             <?php endforeach; ?>
           </form>
         </div>
-        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
-          <a class="btn btn-secondary" style="flex:1;text-align:center" href="form_edit.php?id=<?php echo (int) $form['id']; ?>">แก้ไข</a>
-          <a class="btn btn-secondary" style="flex:1;text-align:center" href="form_responses.php?form_id=<?php echo (int) $form['id']; ?>">ดูคำตอบ <?php if ($form['response_count'] > 0): ?><span style="background:var(--color-accent);color:#fff;border-radius:99px;font-size:11px;padding:1px 7px;margin-left:4px"><?php echo (int)$form['response_count']; ?></span><?php endif; ?></a>
-          <a class="btn btn-ghost btn-icon" aria-label="ดูตัวอย่าง" href="f.php?token=<?php echo h($form['share_token']); ?>" target="_blank">👁</a>
-          <a class="btn btn-ghost btn-icon" aria-label="แชร์ลิงก์" href="share.php?id=<?php echo (int) $form['id']; ?>">🔗</a>
-          <form method="post" action="form_delete.php" style="margin:0" onsubmit="return confirm('ย้ายฟอร์ม &quot;<?php echo h(addslashes($form['title'])); ?>&quot; ไปถังขยะ?\nผู้ตอบจะเข้าฟอร์มนี้ไม่ได้ แต่กู้คืนได้ภายหลัง')">
-            <input type="hidden" name="form_id" value="<?php echo (int) $form['id']; ?>">
-            <button class="btn btn-ghost btn-icon" type="submit" aria-label="ลบฟอร์ม" title="ย้ายไปถังขยะ">🗑</button>
-          </form>
+        <?php $fid = (int) $form['id']; ?>
+        <div class="card-actions">
+          <a class="ca-btn ca-primary" href="form_edit.php?id=<?php echo $fid; ?>">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>แก้ไข
+          </a>
+          <a class="ca-btn" href="form_responses.php?form_id=<?php echo $fid; ?>">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>คำตอบ<?php if ($form['response_count'] > 0): ?><span class="ca-count"><?php echo (int) $form['response_count']; ?></span><?php endif; ?>
+          </a>
+          <div class="ca-icons">
+            <a class="ca-icon" href="f.php?token=<?php echo h($form['share_token']); ?>" target="_blank" title="ดูตัวอย่าง" aria-label="ดูตัวอย่าง">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </a>
+            <a class="ca-icon" href="share.php?id=<?php echo $fid; ?>" title="แชร์ลิงก์" aria-label="แชร์ลิงก์">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+            </a>
+            <form method="post" action="form_delete.php" onsubmit="return confirm('ย้ายฟอร์ม &quot;<?php echo h(addslashes($form['title'])); ?>&quot; ไปถังขยะ?\nผู้ตอบจะเข้าฟอร์มนี้ไม่ได้ แต่กู้คืนได้ภายหลัง')">
+              <input type="hidden" name="form_id" value="<?php echo $fid; ?>">
+              <button class="ca-icon ca-danger" type="submit" title="ย้ายไปถังขยะ" aria-label="ลบฟอร์ม">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     <?php endforeach; ?>
