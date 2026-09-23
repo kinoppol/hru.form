@@ -219,3 +219,28 @@ body:not(.respond) .nav-dot{width:18px;height:18px;background:radial-gradient(ci
 .ca-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;border:none;background:transparent;color:var(--color-neutral-800);cursor:pointer;transition:background .15s,color .15s}
 .ca-icon:hover{background:var(--color-neutral-100);color:var(--color-accent);text-decoration:none}
 .ca-danger:hover{background:#fdecec;color:#dc2626}
+/* survey per-question summary */
+.sv-card{padding:22px;margin-bottom:24px;gap:14px}
+.sv-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sv-head h3{margin:0;font-size:17px}
+.sv-table{width:100%;border-collapse:collapse;font-size:14px}
+.sv-table th{font-size:12px;font-weight:700;text-align:left;padding:10px 12px;background:var(--color-neutral-100);color:var(--color-neutral-800)}
+.sv-table td{padding:10px 12px;border-top:1px solid var(--color-divider);vertical-align:middle}
+.sv-table tfoot td{font-weight:700;background:var(--color-accent-100);border-top:2px solid var(--color-accent-300)}
+.sv-table .c{text-align:center;white-space:nowrap}
+.sv-card .muted{opacity:.55;font-size:12px}
+.sv-table .strong{font-weight:800;color:var(--color-accent-800)}
+.sv-level{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;background:var(--color-neutral-100)}
+.sv-l5{background:#dcfce7;color:#15803d}.sv-l4{background:#e0f2fe;color:#0369a1}.sv-l3{background:#fef9c3;color:#a16207}.sv-l2,.sv-l1{background:#fdecec;color:#b91c1c}
+.sv-dist{display:flex;align-items:flex-end;gap:3px;height:28px}
+.sv-dist span{flex:1;background:var(--color-accent);border-radius:3px 3px 0 0;opacity:.85}
+.sv-dist span.zero{background:var(--color-divider)}
+.sv-note{margin:0;font-size:12px;opacity:.6}
+.sv-choice{border-top:1px solid var(--color-divider);padding-top:12px}
+.sv-q{font-weight:600;font-size:14px;margin-bottom:8px}
+.sv-opt{display:grid;grid-template-columns:minmax(100px,1.2fr) 2fr auto;align-items:center;gap:10px;font-size:13px;margin:5px 0}
+.sv-opt-label{overflow:hidden;text-overflow:ellipsis}
+.sv-bar{height:10px;border-radius:99px;background:var(--color-neutral-100);overflow:hidden}
+.sv-bar span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--color-accent),#38bdf8)}
+.sv-opt-num{white-space:nowrap;opacity:.7;min-width:78px;text-align:right}
+@media print{.sv-card{box-shadow:none!important;border:1px solid #ddd}.sv-bar span,.sv-level{-webkit-print-color-adjust:exact;print-color-adjust:exact}}

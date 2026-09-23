@@ -63,6 +63,12 @@ if ($total > 0 && $responses[0]['max_score'] > 0) {
     $avgScore = round(array_sum(array_column($responses, 'score')) / $total, 1);
 }
 
+// A form with an answer key is a quiz; otherwise summarise it as a survey.
+$qz = db()->prepare('SELECT 1 FROM question_options o JOIN questions q ON q.id = o.question_id WHERE q.form_id = ? AND o.is_correct = 1 LIMIT 1');
+$qz->execute([$formId]);
+$isQuiz = (bool) $qz->fetchColumn();
+$summary = (!$isQuiz && $total > 0) ? survey_summary($formId) : [];
+
 $assetPrefix = '';
 $screenLabel  = 'การตอบกลับ';
 $pageTitle    = 'คำตอบ - ' . $form['title'];
@@ -121,6 +127,76 @@ require __DIR__ . '/includes/site_layout_start.php';
     </div>
     <?php endif; ?>
   </div>
+
+  <?php if (!$isQuiz && $total > 0 && $summary): ?>
+  <?php
+    $scaleRows = array_filter($summary, static fn ($s) => $s['type'] === 'scale' && $s['n'] > 0);
+    // Overall row pools every individual 1–5 rating across all scale questions.
+    $allRatings = [];
+    foreach ($scaleRows as $s) {
+        foreach ($s['dist'] as $k => $c) { for ($i = 0; $i < $c; $i++) { $allRatings[] = $k; } }
+    }
+    $overall = mean_sd($allRatings);
+  ?>
+  <div class="card elev-sm sv-card">
+    <div class="sv-head">
+      <h3>สรุปผลรายข้อ</h3>
+      <span class="text-muted" style="font-size:12px">ระดับความเห็น 1–5 · x̄ = ค่าเฉลี่ย · S.D. = ส่วนเบี่ยงเบนมาตรฐาน</span>
+    </div>
+
+    <?php if ($scaleRows): ?>
+    <div style="overflow-x:auto">
+      <table class="sv-table">
+        <thead>
+          <tr><th style="width:36px">ข้อ</th><th>รายการประเมิน</th><th class="c">n</th><th class="c">x̄</th><th class="c">S.D.</th><th class="c">ระดับ</th><th class="c no-print" style="width:150px">การกระจาย (1→5)</th></tr>
+        </thead>
+        <tbody>
+          <?php $no = 0; foreach ($summary as $s): $no++; if ($s['type'] !== 'scale' || $s['n'] === 0) { continue; } ?>
+            <tr>
+              <td class="muted"><?php echo $no; ?></td>
+              <td><?php echo h($s['text']); ?></td>
+              <td class="c muted"><?php echo $s['n']; ?></td>
+              <td class="c strong"><?php echo number_format($s['mean'], 2); ?></td>
+              <td class="c"><?php echo number_format($s['sd'], 2); ?></td>
+              <td class="c"><span class="sv-level sv-l<?php echo (int) round($s['mean']); ?>"><?php echo h(scale_mean_label($s['mean'])); ?></span></td>
+              <td class="no-print">
+                <div class="sv-dist" title="<?php echo h(implode(' · ', array_map(static fn ($k, $c) => $k . ' = ' . $c . ' คน', array_keys($s['dist']), $s['dist']))); ?>">
+                  <?php $mx = max($s['dist']) ?: 1; foreach ($s['dist'] as $c): ?>
+                    <span style="height:<?php echo max(3, (int) round($c / $mx * 26)); ?>px" class="<?php echo $c ? '' : 'zero'; ?>"></span>
+                  <?php endforeach; ?>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+        <?php if (count($scaleRows) > 1): ?>
+        <tfoot>
+          <tr><td></td><td>ภาพรวม</td><td class="c muted"><?php echo $overall['n']; ?></td><td class="c strong"><?php echo number_format($overall['mean'], 2); ?></td><td class="c"><?php echo number_format($overall['sd'], 2); ?></td><td class="c"><span class="sv-level sv-l<?php echo (int) round($overall['mean']); ?>"><?php echo h(scale_mean_label($overall['mean'])); ?></span></td><td class="no-print"></td></tr>
+        </tfoot>
+        <?php endif; ?>
+      </table>
+    </div>
+    <p class="sv-note">เกณฑ์การแปลผล: 4.51–5.00 มากที่สุด · 3.51–4.50 มาก · 2.51–3.50 ปานกลาง · 1.51–2.50 น้อย · 1.00–1.50 น้อยที่สุด</p>
+    <?php endif; ?>
+
+    <?php $no = 0; foreach ($summary as $s): $no++; if (!in_array($s['type'], ['mc', 'checkbox', 'dropdown'], true)) { continue; } ?>
+      <div class="sv-choice">
+        <div class="sv-q"><span class="muted"><?php echo $no; ?>.</span> <?php echo h($s['text']); ?> <span class="muted">(n = <?php echo $s['n']; ?><?php echo $s['type'] === 'checkbox' ? ', เลือกได้หลายข้อ' : ''; ?>)</span></div>
+        <?php foreach ($s['options'] as $o): $pct = $s['n'] > 0 ? $o['count'] / $s['n'] * 100 : 0; ?>
+          <div class="sv-opt">
+            <span class="sv-opt-label"><?php echo h($o['label']); ?></span>
+            <span class="sv-bar"><span style="width:<?php echo round($pct, 1); ?>%"></span></span>
+            <span class="sv-opt-num"><?php echo $o['count']; ?> (<?php echo number_format($pct, 1); ?>%)</span>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endforeach; ?>
+
+    <?php $no = 0; foreach ($summary as $s): $no++; if ($s['type'] !== 'short') { continue; } ?>
+      <div class="sv-choice"><div class="sv-q"><span class="muted"><?php echo $no; ?>.</span> <?php echo h($s['text']); ?> <span class="muted">— คำตอบปลายเปิด <?php echo $s['n']; ?> รายการ (ดูในแต่ละคำตอบ)</span></div></div>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
 
   <?php if (empty($responses)): ?>
     <div class="card elev-sm" style="text-align:center;padding:40px;color:var(--color-neutral-800);opacity:.6">

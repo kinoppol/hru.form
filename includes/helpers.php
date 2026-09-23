@@ -71,3 +71,76 @@ function app_name(): string
     }
     return $name;
 }
+
+/** Thai five-level interpretation of a 1–5 mean (Best, 1977 criteria). */
+function scale_mean_label(float $mean): string
+{
+    if ($mean >= 4.51) { return 'มากที่สุด'; }
+    if ($mean >= 3.51) { return 'มาก'; }
+    if ($mean >= 2.51) { return 'ปานกลาง'; }
+    if ($mean >= 1.51) { return 'น้อย'; }
+    return 'น้อยที่สุด';
+}
+
+/** @return array{n:int,mean:float,sd:float} sample standard deviation (n-1), as used in Thai survey reports */
+function mean_sd(array $values): array
+{
+    $n = count($values);
+    if ($n === 0) { return ['n' => 0, 'mean' => 0.0, 'sd' => 0.0]; }
+    $mean = array_sum($values) / $n;
+    $sq = 0.0;
+    foreach ($values as $v) { $sq += ($v - $mean) ** 2; }
+    return ['n' => $n, 'mean' => $mean, 'sd' => $n > 1 ? sqrt($sq / ($n - 1)) : 0.0];
+}
+
+/**
+ * Per-question summary of a form's responses.
+ * scale → mean/SD/distribution; mc/dropdown/checkbox → option counts; short → answer count.
+ */
+function survey_summary(int $formId): array
+{
+    $qs = db()->prepare('SELECT id, type, text FROM questions WHERE form_id = ? ORDER BY sort_order, id');
+    $qs->execute([$formId]);
+    $questions = $qs->fetchAll();
+    if (!$questions) { return []; }
+
+    $os = db()->prepare('SELECT o.id, o.question_id, o.label FROM question_options o JOIN questions q ON q.id = o.question_id WHERE q.form_id = ? ORDER BY o.sort_order, o.id');
+    $os->execute([$formId]);
+    $options = [];
+    foreach ($os->fetchAll() as $o) { $options[(int) $o['question_id']][(int) $o['id']] = $o['label']; }
+
+    $as = db()->prepare('SELECT a.question_id, a.answer_json FROM response_answers a JOIN form_responses r ON r.id = a.response_id WHERE r.form_id = ?');
+    $as->execute([$formId]);
+    $answers = [];
+    foreach ($as->fetchAll() as $a) { $answers[(int) $a['question_id']][] = json_decode((string) $a['answer_json'], true); }
+
+    $out = [];
+    foreach ($questions as $q) {
+        $qid = (int) $q['id'];
+        $row = ['id' => $qid, 'type' => $q['type'], 'text' => $q['text']];
+        $list = $answers[$qid] ?? [];
+        if ($q['type'] === 'scale') {
+            $vals = [];
+            $dist = array_fill(1, 5, 0);
+            foreach ($list as $v) {
+                if (is_numeric($v) && (int) $v >= 1 && (int) $v <= 5) { $vals[] = (int) $v; $dist[(int) $v]++; }
+            }
+            $row += mean_sd($vals) + ['dist' => $dist];
+        } elseif ($q['type'] === 'short') {
+            $row['n'] = count(array_filter($list, static fn ($v) => is_string($v) && trim($v) !== ''));
+        } else {
+            $counts = array_fill_keys(array_keys($options[$qid] ?? []), 0);
+            $n = 0;
+            foreach ($list as $v) {
+                $picked = is_array($v) ? $v : ($v === null ? [] : [$v]);
+                if ($picked) { $n++; }
+                foreach ($picked as $oid) { if (isset($counts[(int) $oid])) { $counts[(int) $oid]++; } }
+            }
+            $row['n'] = $n;
+            $row['options'] = [];
+            foreach ($counts as $oid => $c) { $row['options'][] = ['label' => $options[$qid][$oid], 'count' => $c]; }
+        }
+        $out[] = $row;
+    }
+    return $out;
+}
