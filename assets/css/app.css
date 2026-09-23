@@ -204,3 +204,5 @@ body:not(.respond) .nav-dot{width:18px;height:18px;background:radial-gradient(ci
 .ai-input textarea:focus{outline:2px solid var(--color-accent-300);border-color:transparent}
 .ai-input .btn{padding:0 14px}
 @media (max-width:480px){#ai-assist{right:16px;bottom:16px}.ai-panel{height:calc(100vh - 100px)}}
+.ai-model-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--color-divider);background:var(--color-surface);font-size:12px;color:var(--color-neutral-800)}
+.ai-model-bar select{flex:1;min-width:0;border:1px solid var(--color-divider);border-radius:8px;padding:5px 8px;font-family:inherit;font-size:12px;background:var(--color-surface);color:var(--color-text)}

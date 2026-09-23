@@ -44,5 +44,8 @@ foreach (array_slice((array) ($input['messages'] ?? []), -20) as $m) {
 if (empty($messages)) { ai_json(['error' => 'กรุณาพิมพ์ข้อความ'], 400); }
 
 session_write_close(); // don't block the user's other requests while waiting on the LLM
-[$ok, $reply] = ai_chat($messages);
+$allowed = ai_enabled_models();
+$model = (string) ($input['model'] ?? '');
+if (!in_array($model, $allowed, true)) { $model = $allowed[0] ?? null; }
+[$ok, $reply] = ai_chat($messages, $model);
 $ok ? ai_json(['reply' => $reply]) : ai_json(['error' => $reply], 502);

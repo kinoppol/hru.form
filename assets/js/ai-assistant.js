@@ -10,6 +10,11 @@
   var input = form.querySelector('textarea');
   var sendBtn = form.querySelector('button');
   var STORE = 'hruform_ai_chat';
+  var modelSel = root.querySelector('#ai-model-select');
+  if (modelSel) {
+    try { var saved = localStorage.getItem('hruform_ai_model'); if (saved && modelSel.querySelector('option[value="' + CSS.escape(saved) + '"]')) modelSel.value = saved; } catch (e) {}
+    modelSel.addEventListener('change', function () { try { localStorage.setItem('hruform_ai_model', modelSel.value); } catch (e) {} });
+  }
   var history = [];
   try { history = JSON.parse(sessionStorage.getItem(STORE) || '[]') || []; } catch (e) { history = []; }
 
@@ -137,7 +142,7 @@
     addBubble('user', text);
     var typing = addBubble('typing', '');
     typing.innerHTML = '<span></span><span></span><span></span>';
-    post({ messages: history }).then(function (res) {
+    post({ messages: history, model: modelSel ? modelSel.value : '' }).then(function (res) {
       history.push({ role: 'assistant', content: res.reply });
       save();
       typing.remove();

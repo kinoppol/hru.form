@@ -13,6 +13,9 @@ if (!isset($navBrand) && !in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), ['f.
       <button type="button" class="ai-icon-btn ai-reset" title="เริ่มบทสนทนาใหม่">↺</button>
       <button type="button" class="ai-icon-btn ai-close" title="ปิด">✕</button>
     </header>
+    <?php $aiModelList = ai_enabled_models(); if (count($aiModelList) > 1): ?>
+    <div class="ai-model-bar"><label for="ai-model-select">โมเดล</label><select id="ai-model-select"><?php foreach ($aiModelList as $m): ?><option value="<?php echo h($m); ?>"><?php echo h($m); ?></option><?php endforeach; ?></select></div>
+    <?php endif; ?>
     <div class="ai-log" aria-live="polite"></div>
     <form class="ai-input">
       <textarea rows="1" placeholder="เช่น ร่างแบบทดสอบวิทยาศาสตร์ 10 ข้อ..." aria-label="ข้อความถึงผู้ช่วย AI"></textarea>

@@ -7,17 +7,17 @@ require_once __DIR__ . '/db.php';
 function ai_providers(): array
 {
     return [
-        'openrouter' => ['label' => 'OpenRouter', 'base_url' => 'https://openrouter.ai/api/v1'],
-        'google' => ['label' => 'Google AI Studio (Gemini)', 'base_url' => 'https://generativelanguage.googleapis.com/v1beta/openai'],
-        'custom' => ['label' => 'LLM server อื่น ๆ (OpenAI-compatible เช่น Ollama, LM Studio, vLLM)', 'base_url' => ''],
+        'openrouter' => ['label' => 'OpenRouter', 'hint' => 'รวมหลายโมเดลในที่เดียว', 'base_url' => 'https://openrouter.ai/api/v1', 'key_url' => 'https://openrouter.ai/keys'],
+        'google' => ['label' => 'Google AI Studio', 'hint' => 'Gemini โดยตรงจาก Google', 'base_url' => 'https://generativelanguage.googleapis.com/v1beta/openai', 'key_url' => 'https://aistudio.google.com/apikey'],
+        'custom' => ['label' => 'LLM Server อื่น ๆ', 'hint' => 'Ollama, LM Studio, vLLM ฯลฯ', 'base_url' => '', 'key_url' => ''],
     ];
 }
 
 function ai_settings(): array
 {
-    $s = ['ai_enabled' => '0', 'ai_provider' => 'openrouter', 'ai_base_url' => '', 'ai_api_key' => '', 'ai_model' => ''];
+    $s = ['ai_enabled' => '0', 'ai_provider' => 'openrouter', 'ai_base_url' => '', 'ai_api_key' => '', 'ai_model' => '', 'ai_models' => '[]'];
     try {
-        $rows = db()->query("SELECT `key`, `value` FROM settings WHERE `key` IN ('ai_enabled','ai_provider','ai_base_url','ai_api_key','ai_model')")->fetchAll();
+        $rows = db()->query("SELECT `key`, `value` FROM settings WHERE `key` IN ('ai_enabled','ai_provider','ai_base_url','ai_api_key','ai_model','ai_models')")->fetchAll();
         foreach ($rows as $r) { $s[$r['key']] = (string) $r['value']; }
     } catch (Throwable $e) {
         // settings table unavailable; keep defaults
@@ -25,16 +25,46 @@ function ai_settings(): array
     return $s;
 }
 
-function ai_endpoint(array $s): string
+/**
+ * Build an unsaved connection config from admin input. A blank API key falls back
+ * to the stored key so admins can re-test without pasting it again.
+ */
+function ai_config_from_input(array $in): array
+{
+    $stored = ai_settings();
+    $provider = (string) ($in['ai_provider'] ?? 'openrouter');
+    if (!array_key_exists($provider, ai_providers())) { $provider = 'openrouter'; }
+    $key = trim((string) ($in['ai_api_key'] ?? ''));
+    if ($key === '' && empty($in['ai_clear_key'])) { $key = $stored['ai_api_key']; }
+    return array_merge($stored, [
+        'ai_provider' => $provider,
+        'ai_base_url' => trim((string) ($in['ai_base_url'] ?? '')),
+        'ai_api_key' => $key,
+    ]);
+}
+
+/** Models the admin has enabled, default model first. */
+function ai_enabled_models(?array $s = null): array
+{
+    $s = $s ?? ai_settings();
+    $models = json_decode($s['ai_models'], true);
+    $models = is_array($models) ? array_values(array_filter($models, 'is_string')) : [];
+    if ($s['ai_model'] !== '') {
+        $models = array_values(array_unique(array_merge([$s['ai_model']], $models)));
+    }
+    return $models;
+}
+
+function ai_base_url(array $s): string
 {
     $base = $s['ai_provider'] === 'custom' ? $s['ai_base_url'] : (ai_providers()[$s['ai_provider']]['base_url'] ?? '');
-    return $base === '' ? '' : rtrim($base, '/') . '/chat/completions';
+    return rtrim($base, '/');
 }
 
 function ai_is_enabled(): bool
 {
     $s = ai_settings();
-    return $s['ai_enabled'] === '1' && $s['ai_model'] !== '' && ai_endpoint($s) !== '';
+    return $s['ai_enabled'] === '1' && $s['ai_model'] !== '' && ai_base_url($s) !== '';
 }
 
 function ai_system_prompt(): string
@@ -57,46 +87,78 @@ function ai_system_prompt(): string
 TXT;
 }
 
-/** @return array{0:bool,1:string} [ok, reply-or-error] */
-function ai_chat(array $messages): array
+/**
+ * Low-level HTTP call to an OpenAI-compatible endpoint.
+ * @return array{0:bool,1:mixed} [ok, decoded-json or error message]
+ */
+function ai_http(array $s, string $path, ?array $payload = null, int $timeout = 120): array
 {
-    $s = ai_settings();
-    $url = ai_endpoint($s);
-    if ($url === '' || $s['ai_model'] === '') {
-        return [false, 'ยังไม่ได้ตั้งค่าผู้ช่วย AI'];
-    }
-    $headers = ['Content-Type: application/json'];
+    $base = ai_base_url($s);
+    if ($base === '') { return [false, 'ยังไม่ได้ระบุ Base URL']; }
+    $headers = ['Accept: application/json'];
+    if ($payload !== null) { $headers[] = 'Content-Type: application/json'; }
     if ($s['ai_api_key'] !== '') { $headers[] = 'Authorization: Bearer ' . $s['ai_api_key']; }
     if ($s['ai_provider'] === 'openrouter') {
         $headers[] = 'HTTP-Referer: ' . app_base_url();
         $headers[] = 'X-Title: ' . app_name();
     }
-    $payload = [
-        'model' => $s['ai_model'],
-        'messages' => array_merge([['role' => 'system', 'content' => ai_system_prompt()]], $messages),
-        'temperature' => 0.7,
-    ];
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
+    $ch = curl_init($base . $path);
+    $opts = [
         CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 120,
+        CURLOPT_TIMEOUT => $timeout,
         CURLOPT_CONNECTTIMEOUT => 15,
-    ]);
+    ];
+    if ($payload !== null) {
+        $opts[CURLOPT_POST] = true;
+        $opts[CURLOPT_POSTFIELDS] = json_encode($payload, JSON_UNESCAPED_UNICODE);
+    }
+    curl_setopt_array($ch, $opts);
     $body = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err = curl_error($ch);
     curl_close($ch);
 
-    if ($body === false) { return [false, 'เชื่อมต่อ AI ไม่สำเร็จ: ' . $err]; }
+    if ($body === false) { return [false, 'เชื่อมต่อไม่สำเร็จ: ' . $err]; }
     $data = json_decode((string) $body, true);
     if ($code >= 400 || !is_array($data)) {
         $msg = '';
         if (is_array($data)) { $msg = (string) ($data['error']['message'] ?? $data[0]['error']['message'] ?? ''); }
-        return [false, 'AI ตอบกลับผิดพลาด (HTTP ' . $code . ')' . ($msg !== '' ? ': ' . $msg : '')];
+        if ($code === 401 || $code === 403) { $msg = 'API key ไม่ถูกต้องหรือไม่มีสิทธิ์' . ($msg !== '' ? ' (' . $msg . ')' : ''); }
+        return [false, 'HTTP ' . $code . ($msg !== '' ? ': ' . $msg : '')];
     }
+    return [true, $data];
+}
+
+/** @return array{0:bool,1:array|string} [ok, list of ['id','name'] or error] */
+function ai_fetch_models(array $s): array
+{
+    [$ok, $data] = ai_http($s, '/models', null, 30);
+    if (!$ok) { return [false, $data]; }
+    $models = [];
+    foreach ((array) ($data['data'] ?? $data['models'] ?? []) as $m) {
+        $id = is_array($m) ? (string) ($m['id'] ?? $m['name'] ?? '') : (string) $m;
+        if ($id === '') { continue; }
+        $id = preg_replace('#^models/#', '', $id); // Google prefixes ids with "models/"
+        $models[$id] = ['id' => $id, 'name' => is_array($m) ? (string) ($m['name'] ?? $m['display_name'] ?? $id) : $id];
+    }
+    ksort($models, SORT_NATURAL | SORT_FLAG_CASE);
+    return empty($models) ? [false, 'ไม่พบรายการโมเดลจากผู้ให้บริการนี้'] : [true, array_values($models)];
+}
+
+/** @return array{0:bool,1:string} [ok, reply-or-error] */
+function ai_chat(array $messages, ?string $model = null, ?array $s = null, bool $withSystem = true): array
+{
+    $s = $s ?? ai_settings();
+    $model = $model ?? $s['ai_model'];
+    if ($model === '') { return [false, 'ยังไม่ได้เลือกโมเดล']; }
+    $payload = [
+        'model' => $model,
+        'messages' => $withSystem ? array_merge([['role' => 'system', 'content' => ai_system_prompt()]], $messages) : $messages,
+        'temperature' => 0.7,
+    ];
+    [$ok, $data] = ai_http($s, '/chat/completions', $payload);
+    if (!$ok) { return [false, 'AI ตอบกลับผิดพลาด: ' . $data]; }
     $reply = (string) ($data['choices'][0]['message']['content'] ?? '');
     return $reply === '' ? [false, 'AI ไม่ได้ส่งคำตอบกลับมา'] : [true, $reply];
 }
