@@ -22,8 +22,9 @@ if (!$form) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requireLogin = isset($_POST['require_login']) ? 1 : 0;
     $status = isset($_POST['publish']) ? 'published' : $form['status'];
-    $upd = db()->prepare('UPDATE forms SET require_login = ?, status = ? WHERE id = ? AND user_id = ?');
-    $upd->execute([$requireLogin, $status, $formId, site_user_id()]);
+    $accepting = isset($_POST['accepting_responses']) ? 1 : 0;
+    $upd = db()->prepare('UPDATE forms SET require_login = ?, status = ?, accepting_responses = ? WHERE id = ? AND user_id = ?');
+    $upd->execute([$requireLogin, $status, $accepting, $formId, site_user_id()]);
     header('Location: share.php?id=' . $formId . '&saved=1');
     exit;
 }
@@ -42,6 +43,7 @@ require __DIR__ . '/includes/site_layout_start.php';
 
     <?php if (isset($_GET['saved'])): ?><div class="notice">บันทึกการตั้งค่าแล้ว</div><?php endif; ?>
     <?php if ($form['status'] !== 'published'): ?><div class="notice">ฟอร์มนี้ยังเป็นฉบับร่าง เผยแพร่ก่อนเพื่อให้ผู้อื่นตอบได้</div><?php endif; ?>
+    <?php if ($form['status'] === 'published' && !($form['accepting_responses'] ?? 1)): ?><div class="notice">ฟอร์มนี้ปิดรับคำตอบอยู่ ผู้ที่เปิดลิงก์จะไม่สามารถตอบได้</div><?php endif; ?>
 
     <form method="post">
       <div style="display:flex;gap:8px;margin-bottom:14px">
@@ -55,6 +57,10 @@ require __DIR__ . '/includes/site_layout_start.php';
       <label style="display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:18px;cursor:pointer">
         <input type="checkbox" name="publish" <?php echo $form['status'] === 'published' ? 'checked' : ''; ?>>
         เผยแพร่ฟอร์มนี้ (ให้ผู้อื่นตอบได้)
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:18px;cursor:pointer">
+        <input type="checkbox" name="accepting_responses" <?php echo ($form['accepting_responses'] ?? 1) ? 'checked' : ''; ?>>
+        เปิดรับคำตอบ (ยกเลิกเพื่อปิดรับคำตอบชั่วคราว)
       </label>
       <div class="dialog-actions">
         <a class="btn btn-secondary" href="dashboard.php">ปิด</a>

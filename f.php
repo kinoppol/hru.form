@@ -31,6 +31,18 @@ if ($form['status'] !== 'published' && !$isOwner) {
     exit;
 }
 
+$isClosed = !($form['accepting_responses'] ?? 1);
+if ($isClosed && !$isOwner) {
+    unset($_SESSION['respond_' . $token]);
+    $assetPrefix = '';
+    $screenLabel = 'ตอบแบบฟอร์ม';
+    $pageTitle = $form['title'];
+    require __DIR__ . '/includes/site_layout_start.php';
+    echo '<section class="wrap-narrow"><div class="notice">แบบฟอร์ม "' . h($form['title']) . '" ปิดรับคำตอบแล้ว</div></section>';
+    require __DIR__ . '/includes/site_layout_end.php';
+    exit;
+}
+
 if ($form['require_login'] && !site_check()) {
     $_SESSION['login_redirect'] = 'f.php?token=' . urlencode($token);
     header('Location: login.php');
@@ -278,6 +290,9 @@ body{background:radial-gradient(900px 500px at 10% 0%,color-mix(in srgb,var(--fa
 </div>
 
 <div class="f-shell">
+  <?php if ($isClosed): ?>
+    <div class="f-card" style="margin-bottom:14px;padding:14px 18px;font-size:14px;font-weight:600;color:#b45309">ฟอร์มนี้ปิดรับคำตอบอยู่ — คุณเห็นหน้านี้เพราะเป็นเจ้าของฟอร์ม</div>
+  <?php endif; ?>
   <?php if ($state['step'] === 0): ?>
   <div class="f-card">
     <div class="f-section-label">ข้อมูลส่วนตัว</div>

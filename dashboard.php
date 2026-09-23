@@ -43,6 +43,7 @@ require __DIR__ . '/includes/site_layout_start.php';
         <div class="card-title"><?php echo h($form['title']); ?></div>
         <div class="card-meta"><span><?php echo (int) $form['response_count']; ?> คำตอบ · สร้างเมื่อ <?php echo h(date('d M Y', strtotime($form['created_at']))); ?></span></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <?php if ($form['status'] === 'published'): ?><span class="tag <?php echo ($form['accepting_responses'] ?? 1) ? 'tag-accent' : 'tag-outline'; ?>"><?php echo ($form['accepting_responses'] ?? 1) ? 'เปิดรับคำตอบ' : 'ปิดรับคำตอบ'; ?></span><?php endif; ?>
           <?php if ($form['shuffle']): ?><span class="tag tag-neutral">สุ่มคำถาม</span><?php endif; ?>
           <span class="tag tag-neutral"><?php echo $form['show_score'] ? 'แสดงคะแนนให้ผู้ตอบ' : 'ไม่แสดงคะแนน'; ?></span>
         </div>
