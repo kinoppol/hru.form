@@ -96,9 +96,26 @@ $sheet .= '</sheetData></worksheet>';
 
 $sheetName = 'คำตอบ';
 
-$tmp = tempnam(sys_get_temp_dir(), 'xlsx');
-$zip = new ZipArchive();
-$zip->open($tmp, ZipArchive::OVERWRITE);
+// Pure-PHP zip writer (deflate when zlib is available, else stored) so no ZipArchive extension is required.
+$zip = new class {
+    private string $data = '';
+    private string $dir = '';
+    private int $count = 0;
+    public function addFromString(string $name, string $content): void
+    {
+        $method = function_exists('gzdeflate') ? 8 : 0;
+        $body = $method ? gzdeflate($content, 6) : $content;
+        $head = pack('vvvvvVVVvv', 20, 0x0800, $method, 0, 0x21, crc32($content), strlen($body), strlen($content), strlen($name), 0);
+        $offset = strlen($this->data);
+        $this->data .= "PK\x03\x04" . $head . $name . $body;
+        $this->dir .= "PK\x01\x02" . pack('v', 20) . $head . pack('vvvVV', 0, 0, 0, 0, $offset) . $name;
+        $this->count++;
+    }
+    public function output(): string
+    {
+        return $this->data . $this->dir . "PK\x05\x06" . pack('vvvvVVv', 0, 0, $this->count, $this->count, strlen($this->dir), strlen($this->data), 0);
+    }
+};
 $zip->addFromString('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
     . '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
@@ -128,12 +145,11 @@ $zip->addFromString('xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" stand
     . '<cellXfs count="2"><xf fontId="0"/><xf fontId="1" applyFont="1"/></cellXfs>'
     . '</styleSheet>');
 $zip->addFromString('xl/worksheets/sheet1.xml', $sheet);
-$zip->close();
+$bin = $zip->output();
 
 $filename = 'responses-' . $formId . '-' . date('Ymd-His') . '.xlsx';
 $utfName  = preg_replace('/[\\\\\/:*?"<>|\r\n]/u', '_', $form['title']) . '.xlsx';
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment; filename="' . $filename . '"; filename*=UTF-8\'\'' . rawurlencode($utfName));
-header('Content-Length: ' . filesize($tmp));
-readfile($tmp);
-unlink($tmp);
+header('Content-Length: ' . strlen($bin));
+echo $bin;
