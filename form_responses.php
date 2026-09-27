@@ -102,6 +102,7 @@ require __DIR__ . '/includes/site_layout_start.php';
           <option value="asc"<?php echo $sortDir === 'asc' ? ' selected' : ''; ?>>น้อย → มาก / เก่า → ใหม่</option>
         </select>
       </form>
+      <a class="btn btn-secondary" href="form_export.php?form_id=<?php echo $formId; ?>">📥 ส่งออก Excel</a>
       <button class="btn btn-secondary" onclick="window.print()">🖨 พิมพ์รายการ</button>
     </div>
   </div>
