@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $formId = (int) ($_POST['form_id'] ?? 0);
 $questionId = (int) ($_POST['question_id'] ?? 0);
 
-$stmt = db()->prepare('SELECT f.id FROM forms f WHERE f.id = ? AND f.user_id = ?');
+$stmt = db()->prepare('SELECT f.id FROM forms f WHERE f.id = ? AND f.user_id = ? AND f.deleted_at IS NULL');
 $stmt->execute([$formId, site_user_id()]);
 if ($stmt->fetch()) {
     $del = db()->prepare('DELETE FROM questions WHERE id = ? AND form_id = ?');

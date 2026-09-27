@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'ไม่พบคำถามที่นำเข้าได้จากไฟล์นี้ กรุณาตรวจสอบรูปแบบไฟล์';
             } else {
                 if ($formId > 0) {
-                    $chk = db()->prepare('SELECT id FROM forms WHERE id = ? AND user_id = ?');
+                    $chk = db()->prepare('SELECT id FROM forms WHERE id = ? AND user_id = ? AND deleted_at IS NULL');
                     $chk->execute([$formId, site_user_id()]);
                     if (!$chk->fetch()) {
                         $formId = 0;

@@ -7,10 +7,11 @@ if (!app_is_installed()) { header('Location: install.php'); exit; }
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/site_auth.php';
 require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/includes/import.php';
 site_require_login();
 
 $formId = (int) ($_GET['id'] ?? 0);
-$stmt = db()->prepare('SELECT * FROM forms WHERE id = ? AND user_id = ?');
+$stmt = db()->prepare('SELECT * FROM forms WHERE id = ? AND user_id = ? AND deleted_at IS NULL');
 $stmt->execute([$formId, site_user_id()]);
 $form = $stmt->fetch();
 
@@ -21,11 +22,71 @@ if (!$form) {
 
 $errors = [];
 $notices = [];
+$importPreview = null;
+
+if (isset($_GET['imported'])) {
+    $notices[] = 'นำเข้าคำถามสำเร็จ ' . (int) $_GET['imported'] . ' ข้อ';
+}
+
+$importFormats = [
+    'aiken' => ['label' => 'Aiken (.txt / .aiken)', 'accept' => '.txt,.aiken', 'hint' => 'บรรทัดแรก = คำถาม → A. / A) ตัวเลือก → ANSWER: A'],
+    'gift'  => ['label' => 'GIFT (.txt / .gift)',   'accept' => '.txt,.gift',  'hint' => 'รูปแบบ Moodle GIFT — คำถามล้อมด้วย { }'],
+    'csv'   => ['label' => 'CSV (.csv)',             'accept' => '.csv',        'hint' => 'คอลัมน์: คำถาม, ประเภท, ตัวเลือก1, …, ตัวเลือกN, คำตอบ(1;2)'],
+];
+
+function do_parse_by_format(string $format, string $content, string $filename): array
+{
+    if ($format === 'aiken') return import_parse_aiken($content);
+    if ($format === 'gift')  return import_parse_gift($content);
+    if ($format === 'csv')   return import_parse_csv($content);
+    return import_detect_and_parse($content, $filename);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'import_aiken') {
+    $importFormat = isset($importFormats[$_POST['import_format'] ?? '']) ? $_POST['import_format'] : 'aiken';
+
+    if (isset($_POST['confirm_import']) && isset($_POST['aiken_preview_data'])) {
+        $content = base64_decode($_POST['aiken_preview_data'], true);
+        $parsedQuestions = $content !== false ? do_parse_by_format($importFormat, $content, '') : [];
+        if (empty($parsedQuestions)) {
+            $errors[] = 'ข้อมูลสำหรับนำเข้าเสียหาย กรุณาอัปโหลดไฟล์ใหม่อีกครั้ง';
+        } else {
+            $maxOrder = (int) db()->query('SELECT COALESCE(MAX(sort_order), -1) FROM questions WHERE form_id = ' . $formId)->fetchColumn();
+            $qIns = db()->prepare('INSERT INTO questions (form_id, type, text, scored, sort_order) VALUES (?, ?, ?, ?, ?)');
+            $oIns = db()->prepare('INSERT INTO question_options (question_id, label, is_correct, sort_order) VALUES (?, ?, ?, ?)');
+            foreach ($parsedQuestions as $q) {
+                $maxOrder++;
+                $qIns->execute([$formId, $q['type'], $q['text'], $q['scored'] ? 1 : 0, $maxOrder]);
+                $qid = (int) db()->lastInsertId();
+                foreach ($q['options'] as $j => $opt) {
+                    $oIns->execute([$qid, $opt['label'], $opt['is_correct'] ? 1 : 0, $j]);
+                }
+            }
+            header('Location: form_edit.php?id=' . $formId . '&imported=' . count($parsedQuestions));
+            exit;
+        }
+    } elseif (!empty($_FILES['aiken_file']['tmp_name']) && $_FILES['aiken_file']['error'] === UPLOAD_ERR_OK) {
+        $filename = $_FILES['aiken_file']['name'];
+        $content = file_get_contents($_FILES['aiken_file']['tmp_name']);
+        $parsedQuestions = do_parse_by_format($importFormat, $content, $filename);
+        if (empty($parsedQuestions)) {
+            $fmt = $importFormats[$importFormat]['label'];
+            $errors[] = 'ไม่พบคำถามจากไฟล์นี้ด้วยรูปแบบ ' . $fmt . ' — กรุณาตรวจสอบไฟล์หรือเลือกรูปแบบที่ถูกต้อง';
+        } else {
+            $importPreview = ['questions' => $parsedQuestions, 'encoded' => base64_encode($content), 'format' => $importFormat];
+        }
+    } else {
+        $errors[] = 'กรุณาเลือกไฟล์ที่ต้องการนำเข้า';
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_settings') {
     $title = trim($_POST['title'] ?? '');
     $shuffle = isset($_POST['shuffle']) ? 1 : 0;
     $showScore = isset($_POST['show_score']) ? 1 : 0;
+    $showAnswers        = isset($_POST['show_answers']) ? 1 : 0;
+    $requireAllAnswers  = isset($_POST['require_all_answers']) ? 1 : 0;
+    $acceptingResponses = isset($_POST['accepting_responses']) ? 1 : 0;
 
     $pfKeys = $_POST['pf_key'] ?? [];
     $pfLabels = $_POST['pf_label'] ?? [];
@@ -46,8 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     if ($title === '') {
         $errors[] = 'กรุณากรอกชื่อฟอร์ม';
     } else {
-        $upd = db()->prepare('UPDATE forms SET title = ?, shuffle = ?, show_score = ?, personal_fields_json = ? WHERE id = ? AND user_id = ?');
-        $upd->execute([$title, $shuffle, $showScore, json_encode($personalFields, JSON_UNESCAPED_UNICODE), $formId, site_user_id()]);
+        $upd = db()->prepare('UPDATE forms SET title = ?, shuffle = ?, show_score = ?, show_answers = ?, require_all_answers = ?, accepting_responses = ?, personal_fields_json = ? WHERE id = ? AND user_id = ?');
+        $upd->execute([$title, $shuffle, $showScore, $showAnswers, $requireAllAnswers, $acceptingResponses, json_encode($personalFields, JSON_UNESCAPED_UNICODE), $formId, site_user_id()]);
         $notices[] = 'บันทึกการตั้งค่าแล้ว';
         $stmt->execute([$formId, site_user_id()]);
         $form = $stmt->fetch();
@@ -67,7 +128,7 @@ $pageTitle = $form['title'];
 require __DIR__ . '/includes/site_layout_start.php';
 ?>
 <section class="wrap">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+  <div class="page-head">
     <h2 style="margin:0"><?php echo h($form['title']); ?></h2>
     <a class="btn btn-secondary" href="dashboard.php">← กลับแดชบอร์ด</a>
   </div>
@@ -89,6 +150,15 @@ require __DIR__ . '/includes/site_layout_start.php';
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
           <input type="checkbox" name="show_score" <?php echo $form['show_score'] ? 'checked' : ''; ?>> แสดงคะแนนให้ผู้ตอบ
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" name="show_answers" <?php echo ($form['show_answers'] ?? 0) ? 'checked' : ''; ?>> แสดงเฉลยหลังตอบ
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" name="require_all_answers" <?php echo ($form['require_all_answers'] ?? 1) ? 'checked' : ''; ?>> บังคับตอบทุกข้อก่อนส่ง
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" name="accepting_responses" <?php echo ($form['accepting_responses'] ?? 1) ? 'checked' : ''; ?>> เปิดรับคำตอบ
         </label>
       </div>
 
@@ -122,10 +192,76 @@ require __DIR__ . '/includes/site_layout_start.php';
     </form>
   </div>
 
+  <?php if ($importPreview !== null): ?>
+  <div class="card elev-sm" style="margin-bottom:20px;border:2px solid var(--clr-primary,#9184d9)">
+    <div class="card-title">ตรวจสอบก่อนนำเข้า — พบ <?php echo count($importPreview['questions']); ?> ข้อ</div>
+    <p class="text-muted" style="font-size:13px;margin-bottom:12px">ตรวจสอบรายการด้านล่าง แล้วกด <strong>ยืนยันนำเข้า</strong> เพื่อเพิ่มคำถามทั้งหมดเข้าฟอร์ม</p>
+    <div style="display:grid;gap:8px;max-height:360px;overflow-y:auto;margin-bottom:16px">
+      <?php foreach ($importPreview['questions'] as $pi => $pq): ?>
+        <div style="background:var(--clr-surface,#f6f5ff);border-radius:8px;padding:10px 14px;font-size:13px">
+          <div style="font-weight:600;margin-bottom:4px"><?php echo $pi + 1; ?>. <?php echo h($pq['text']); ?></div>
+          <ol style="margin:0;padding-left:18px">
+            <?php foreach ($pq['options'] as $po): ?>
+              <li style="<?php echo $po['is_correct'] ? 'color:var(--clr-success,#3b8a5c);font-weight:600' : ''; ?>">
+                <?php echo h($po['label']); ?><?php echo $po['is_correct'] ? ' ✓' : ''; ?>
+              </li>
+            <?php endforeach; ?>
+          </ol>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <form method="post">
+      <input type="hidden" name="action" value="import_aiken">
+      <input type="hidden" name="form_id" value="<?php echo $formId; ?>">
+      <input type="hidden" name="confirm_import" value="1">
+      <input type="hidden" name="import_format" value="<?php echo h($importPreview['format']); ?>">
+      <input type="hidden" name="aiken_preview_data" value="<?php echo h($importPreview['encoded']); ?>">
+      <div style="display:flex;gap:8px">
+        <a class="btn btn-secondary" href="form_edit.php?id=<?php echo $formId; ?>">ยกเลิก</a>
+        <button class="btn btn-primary" type="submit">ยืนยันนำเข้า <?php echo count($importPreview['questions']); ?> ข้อ</button>
+      </div>
+    </form>
+  </div>
+  <?php endif; ?>
+
   <div class="card elev-sm">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
       <div class="card-title">คำถาม (ส่วนที่ 2)</div>
-      <a class="btn btn-secondary" href="question_form.php?form_id=<?php echo $formId; ?>">+ เพิ่มคำถาม</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary" type="button" id="aiken-toggle-btn" onclick="var p=document.getElementById('aiken-import-panel');var open=p.style.display==='none';p.style.display=open?'block':'none';this.textContent=open?'✕ ปิด Aiken':'↑ นำเข้า Aiken'">↑ นำเข้า Aiken</button>
+        <a class="btn btn-secondary" href="question_form.php?form_id=<?php echo $formId; ?>">+ เพิ่มคำถาม</a>
+      </div>
+    </div>
+
+    <div id="aiken-import-panel" style="display:<?php echo ($importPreview !== null || !empty($errors)) ? 'block' : 'none'; ?>;margin-top:16px;padding:16px;background:var(--clr-surface,#f6f5ff);border-radius:10px;border:1px solid var(--clr-border,#ddd)"  >
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">นำเข้าคำถามจากไฟล์</div>
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="import_aiken">
+        <input type="hidden" name="form_id" value="<?php echo $formId; ?>">
+        <div style="display:grid;gap:10px">
+          <div class="field" style="margin:0">
+            <label style="font-size:12px;font-weight:600" for="import_format">รูปแบบไฟล์</label>
+            <select class="input" id="import_format" name="import_format" style="margin-top:4px"
+              onchange="
+                var fmt=<?php echo json_encode($importFormats); ?>[this.value];
+                document.getElementById('aiken_file').accept=fmt.accept;
+                document.getElementById('import-hint').textContent=fmt.hint;
+              ">
+              <?php foreach ($importFormats as $fval => $fmeta): ?>
+                <option value="<?php echo $fval; ?>"><?php echo h($fmeta['label']); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <p id="import-hint" class="text-muted" style="font-size:12px;margin:0"><?php echo h($importFormats['aiken']['hint']); ?></p>
+          <div class="field" style="margin:0">
+            <label style="font-size:12px;font-weight:600" for="aiken_file">เลือกไฟล์</label>
+            <input type="file" id="aiken_file" name="aiken_file" accept=".txt,.aiken" required style="margin-top:4px">
+          </div>
+          <div>
+            <button class="btn btn-primary" type="submit">ดูตัวอย่างก่อนนำเข้า</button>
+          </div>
+        </div>
+      </form>
     </div>
 
     <div style="display:grid;gap:10px;margin-top:10px">
@@ -160,4 +296,13 @@ require __DIR__ . '/includes/site_layout_start.php';
     </div>
   </div>
 </section>
+<script>
+(function(){
+  var panel = document.getElementById('aiken-import-panel');
+  var btn = document.getElementById('aiken-toggle-btn');
+  if (panel && btn && panel.style.display !== 'none') {
+    btn.textContent = '✕ ปิด Aiken';
+  }
+})();
+</script>
 <?php require __DIR__ . '/includes/site_layout_end.php'; ?>

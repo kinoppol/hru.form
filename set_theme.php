@@ -18,7 +18,7 @@ $hex = (string) ($_POST['hex'] ?? '');
 $return = $_POST['return'] ?? 'dashboard';
 
 if (preg_match('/^#[0-9a-fA-F]{6}$/', $hex)) {
-    $stmt = db()->prepare('UPDATE forms SET theme_color = ? WHERE id = ? AND user_id = ?');
+    $stmt = db()->prepare('UPDATE forms SET theme_color = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL');
     $stmt->execute([$hex, $formId, site_user_id()]);
 }
 

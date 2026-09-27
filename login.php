@@ -6,6 +6,7 @@ if (!app_is_installed()) { header('Location: install.php'); exit; }
 
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/site_auth.php';
+require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/helpers.php';
 
 if (site_check()) {
@@ -23,7 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: dashboard.php');
         exit;
     }
-    $error = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+    // Admin accounts are created with a username only (no email), so also
+    // accept an admin username here and sign in through the admin's users row.
+    if (auth_attempt($email, $password)) {
+        site_login_as_admin((int) auth_current_id(), (string) auth_current_username());
+        header('Location: dashboard.php');
+        exit;
+    }
+    $error = 'อีเมล/ชื่อผู้ใช้ หรือรหัสผ่านไม่ถูกต้อง';
 }
 
 $assetPrefix = '';
@@ -40,8 +48,8 @@ require __DIR__ . '/includes/site_layout_start.php';
     <?php if ($error): ?><div class="errors"><?php echo h($error); ?></div><?php endif; ?>
     <form method="post">
       <div class="field" style="margin-bottom:16px">
-        <label for="email">อีเมล</label>
-        <input class="input" id="email" name="email" type="email" placeholder="you@example.com" required value="<?php echo h($_POST['email'] ?? ''); ?>">
+        <label for="email">อีเมล หรือชื่อผู้ใช้</label>
+        <input class="input" id="email" name="email" type="text" autocomplete="username" placeholder="you@example.com หรือ admin" required value="<?php echo h($_POST['email'] ?? ''); ?>">
       </div>
       <div class="field" style="margin-bottom:20px">
         <label for="password">รหัสผ่าน</label>
