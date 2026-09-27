@@ -60,6 +60,50 @@ if (!isset($_SESSION[$sessKey])) {
 }
 $state = &$_SESSION[$sessKey];
 
+$hasQuestions = !empty($questions);
+
+$submitResponse = function () use ($form, $questions, &$state, $sessKey): void {
+    $answers = $state['answers'];
+    $score = 0;
+    $maxScore = 0;
+    $pdo = db();
+    $pdo->beginTransaction();
+    $insResp = $pdo->prepare('INSERT INTO form_responses (form_id, user_id, personal_data_json, score, max_score) VALUES (?, ?, ?, NULL, NULL)');
+    $insResp->execute([$form['id'], site_user_id(), json_encode($state['personal'], JSON_UNESCAPED_UNICODE)]);
+    $responseId = (int) $pdo->lastInsertId();
+
+    $insAns = $pdo->prepare('INSERT INTO response_answers (response_id, question_id, answer_json, is_correct) VALUES (?, ?, ?, ?)');
+    foreach ($questions as $q) {
+        $ans = $answers[$q['id']] ?? null;
+        $isCorrect = null;
+        if ($q['scored']) {
+            $maxScore++;
+            $correctIds = array_column(array_filter($q['options'], static fn ($o) => (bool) $o['is_correct']), 'id');
+            if ($q['type'] === 'checkbox') {
+                $given = $ans ?? [];
+                sort($given);
+                $correctSorted = $correctIds;
+                sort($correctSorted);
+                $isCorrect = $given === $correctSorted && !empty($given);
+            } else {
+                $isCorrect = $ans !== null && in_array($ans, $correctIds, true);
+            }
+            if ($isCorrect) {
+                $score++;
+            }
+        }
+        $insAns->execute([$responseId, $q['id'], json_encode($ans, JSON_UNESCAPED_UNICODE), $isCorrect === null ? null : (int) $isCorrect]);
+    }
+
+    $upd = $pdo->prepare('UPDATE form_responses SET score = ?, max_score = ? WHERE id = ?');
+    $upd->execute([$score, $maxScore, $responseId]);
+    $pdo->commit();
+
+    unset($_SESSION[$sessKey]);
+    header('Location: results.php?rid=' . $responseId);
+    exit;
+};
+
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -76,7 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (empty($errors)) {
             $state['personal'] = $personal;
-            $state['step'] = 1;
+            if ($hasQuestions) {
+                $state['step'] = 1;
+            } else {
+                // A form with no questions has nothing to answer in a second
+                // section, so submit the response right after personal info.
+                $submitResponse();
+            }
         }
     } elseif ($step === 'quiz') {
         $answers = [];
@@ -93,45 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         $state['answers'] = $answers;
-
-        $score = 0;
-        $maxScore = 0;
-        $pdo = db();
-        $pdo->beginTransaction();
-        $insResp = $pdo->prepare('INSERT INTO form_responses (form_id, user_id, personal_data_json, score, max_score) VALUES (?, ?, ?, NULL, NULL)');
-        $insResp->execute([$form['id'], site_user_id(), json_encode($state['personal'], JSON_UNESCAPED_UNICODE)]);
-        $responseId = (int) $pdo->lastInsertId();
-
-        $insAns = $pdo->prepare('INSERT INTO response_answers (response_id, question_id, answer_json, is_correct) VALUES (?, ?, ?, ?)');
-        foreach ($questions as $q) {
-            $ans = $answers[$q['id']] ?? null;
-            $isCorrect = null;
-            if ($q['scored']) {
-                $maxScore++;
-                $correctIds = array_column(array_filter($q['options'], static fn ($o) => (bool) $o['is_correct']), 'id');
-                if ($q['type'] === 'checkbox') {
-                    $given = $ans ?? [];
-                    sort($given);
-                    $correctSorted = $correctIds;
-                    sort($correctSorted);
-                    $isCorrect = $given === $correctSorted && !empty($given);
-                } else {
-                    $isCorrect = $ans !== null && in_array($ans, $correctIds, true);
-                }
-                if ($isCorrect) {
-                    $score++;
-                }
-            }
-            $insAns->execute([$responseId, $q['id'], json_encode($ans, JSON_UNESCAPED_UNICODE), $isCorrect === null ? null : (int) $isCorrect]);
-        }
-
-        $upd = $pdo->prepare('UPDATE form_responses SET score = ?, max_score = ? WHERE id = ?');
-        $upd->execute([$score, $maxScore, $responseId]);
-        $pdo->commit();
-
-        unset($_SESSION[$sessKey]);
-        header('Location: results.php?rid=' . $responseId);
-        exit;
+        $submitResponse();
     } elseif ($step === 'back') {
         $state['step'] = 0;
     }
@@ -142,15 +154,17 @@ $screenLabel = 'ตอบแบบฟอร์ม';
 $pageTitle = $form['title'];
 require __DIR__ . '/includes/site_layout_start.php';
 
-$progressPct = $state['step'] === 0 ? '50%' : '100%';
+$progressPct = (!$hasQuestions || $state['step'] === 1) ? '100%' : '50%';
 ?>
 <section class="wrap-narrow" style="--color-accent:<?php echo h($form['theme_color']); ?>">
   <div class="progress-track"><div class="progress-fill" style="width:<?php echo $progressPct; ?>"></div></div>
 
   <?php if ($state['step'] === 0): ?>
-    <span class="tag tag-outline">ส่วนที่ 1 จาก 2 · ข้อมูลผู้ตอบ</span>
+    <?php if ($hasQuestions): ?>
+      <span class="tag tag-outline">ส่วนที่ 1 จาก 2 · ข้อมูลผู้ตอบ</span>
+    <?php endif; ?>
     <h2 style="margin-top:14px">ข้อมูลผู้ตอบ</h2>
-    <p class="text-muted" style="font-size:13px">ข้อมูลในส่วนนี้จะถูกจัดเก็บแยกจากคำตอบแบบทดสอบของคุณ</p>
+    <p class="text-muted" style="font-size:13px"><?php echo $hasQuestions ? 'ข้อมูลในส่วนนี้จะถูกจัดเก็บแยกจากคำตอบแบบทดสอบของคุณ' : 'กรุณากรอกข้อมูลเพื่อส่งแบบฟอร์มนี้'; ?></p>
     <form method="post">
       <input type="hidden" name="token" value="<?php echo h($token); ?>">
       <input type="hidden" name="step" value="personal">
@@ -163,10 +177,10 @@ $progressPct = $state['step'] === 0 ? '50%' : '100%';
           </div>
         <?php endforeach; ?>
       </div>
-      <button type="submit" class="btn btn-primary btn-block" style="margin-top:22px">ถัดไป: เริ่มทำแบบทดสอบ</button>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:22px"><?php echo $hasQuestions ? 'ถัดไป: เริ่มทำแบบทดสอบ' : 'ส่งคำตอบ'; ?></button>
     </form>
 
-  <?php else: ?>
+  <?php elseif ($hasQuestions): ?>
     <span class="tag tag-outline">ส่วนที่ 2 จาก 2 · แบบทดสอบ</span>
     <h2 style="margin-top:14px"><?php echo h($form['title']); ?></h2>
     <form method="post">

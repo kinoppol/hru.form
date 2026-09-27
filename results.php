@@ -29,7 +29,8 @@ if (!$isOwner && !$isSelf) {
     $isSelf = true;
 }
 
-$showScoreEnabled = (bool) $response['show_score'];
+$hasScoredQuestions = (int) $response['max_score'] > 0;
+$showScoreEnabled = $hasScoredQuestions && (bool) $response['show_score'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isOwner && isset($_POST['toggle_show_score'])) {
     $showScoreEnabled = !$showScoreEnabled;
@@ -84,13 +85,18 @@ require __DIR__ . '/includes/site_layout_start.php';
       <div class="card-kicker">คะแนนของคุณ</div>
       <h1 style="font-size:48px;margin:8px 0"><?php echo (int) $response['score'] . ' / ' . (int) $response['max_score']; ?></h1>
       <p class="text-muted" style="margin:0">ทำได้ <?php echo $response['max_score'] > 0 ? round($response['score'] / $response['max_score'] * 100) : 0; ?>% ของคำถามที่ให้คะแนน</p>
-    <?php else: ?>
+    <?php elseif ($hasScoredQuestions): ?>
       <div class="card-kicker">ส่งคำตอบสำเร็จ</div>
       <h2 style="margin:10px 0 6px">ขอบคุณสำหรับการตอบแบบทดสอบ</h2>
       <p class="text-muted" style="margin:0">เจ้าของฟอร์มเลือกไม่แสดงคะแนนสำหรับแบบทดสอบนี้</p>
+    <?php else: ?>
+      <div class="card-kicker">ส่งคำตอบสำเร็จ</div>
+      <h2 style="margin:10px 0 6px">ขอบคุณสำหรับการตอบแบบฟอร์ม</h2>
+      <p class="text-muted" style="margin:0">เราได้รับคำตอบของคุณเรียบร้อยแล้ว</p>
     <?php endif; ?>
   </div>
 
+  <?php if ($hasScoredQuestions): ?>
   <div style="display:flex;align-items:center;justify-content:space-between;margin:26px 0 14px;gap:12px;flex-wrap:wrap">
     <h3 style="margin:0">รายละเอียดคำตอบ</h3>
     <?php if ($isOwner): ?>
@@ -102,6 +108,7 @@ require __DIR__ . '/includes/site_layout_start.php';
       </form>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 
   <?php if ($showScoreEnabled): ?>
     <div style="display:grid;gap:10px">
